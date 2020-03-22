@@ -11,12 +11,17 @@ export type DefineTemplate = string | HTMLElement | DocumentFragment;
 export type DefineStyles = string | DefineStylesStructure;
 export type DefineAttributesMap = Map<string, any>;
 export type DefineSlotContentAttribute = HTMLElement | DocumentFragment | Text | string | number;
+export interface DefineControllerArguments {
+  elementNode: HTMLElement,
+  shadowDOMAccess: DefineShadowDOMAccess,
+  attributesMap: DefineAttributesMap
+}
 
 export interface DefineConfig {
-  render?: (shadowDOMAccess: DefineShadowDOMAccess, attributes: DefineAttributesMap) => DefineTemplate;
+  render?: (controllerArguments: DefineControllerArguments) => DefineTemplate;
   styles?: DefineStyles;
   stylesUrl?: string;
-  controller?: (shadowDOMAccess: DefineShadowDOMAccess, attributes: DefineAttributesMap) => void;
+  controller?: (controllerArguments: DefineControllerArguments) => void;
   attributesSchema?: DefineAttributesSchema,
   attributes?: DefineAttributesMap,
   observedAttributes?: string[];
@@ -29,17 +34,27 @@ export interface DefineConfig {
   extends?: string;
 }
 
-export const DefineTypes = {
+export type DefineType = (value: string) => any;
+
+export const DefineTypes: {[key: string]: DefineType} = {
   JSON: function(value: string): any {
     return JSON.parse(value);
-  }
+  },
+  Boolean: Boolean
 };
 
-export const DefineTypesSerialize = new Map([
-  [DefineTypes.JSON, function(value: any): string {
-    return JSON.stringify(value);
-  }]
-]);
+export const DefineTypesSerialize: Map<DefineType, (value: any) => string> = new Map();
+DefineTypesSerialize.set(DefineTypes.JSON, function(value: any): string {
+  return JSON.stringify(value);
+});
+
+export const DefineTypesUnserialize: Map<DefineType, (value: string) => any> = new Map();
+DefineTypesUnserialize.set(Boolean, function(value: string): boolean {
+  if(value === "false" || value === "off" || value === "") {
+    return false;
+  }
+  return Boolean(value);
+});
 
 export class DefineShadowDOMAccess {
   #shadow: ShadowRoot;
@@ -98,8 +113,14 @@ export const define = async function(elementName: string, config: DefineConfig) 
 
       this.#shadowDOMAccess = new DefineShadowDOMAccess(this.#shadow);
 
+      const controllerArguments: DefineControllerArguments = {
+        elementNode: this,
+        shadowDOMAccess: this.#shadowDOMAccess,
+        attributesMap: this.getAttributesMap()
+      };
+
       if(config.render) {
-        const renderResult = config.render.call(this, this, this.#shadowDOMAccess, this.getAttributesMap());
+        const renderResult = config.render(controllerArguments);
 
         if(typeof renderResult === "string") {
           this.#shadow.innerHTML = renderResult;
@@ -108,21 +129,19 @@ export const define = async function(elementName: string, config: DefineConfig) 
             renderResult.content.cloneNode(true)
           );
         } else if (renderResult instanceof HTMLElement || renderResult instanceof DocumentFragment) {
-          this.#shadow.appendChild(
-            renderResult.cloneNode(true)
-          );
+          this.#shadow.appendChild(renderResult);
         }
       }
 
       if(stylesCSS) {
         const styleNode = document.createElement("style");
         styleNode.setAttribute("type", "text/css");
-        styleNode.innerText = stylesCSS;
+        styleNode.innerHTML = stylesCSS;
         this.#shadow.appendChild(styleNode);
       }
 
 			if(config.controller) {
-			    config.controller.call(this, this, this.#shadowDOMAccess, this.getAttributesMap());
+			    config.controller(controllerArguments);
 			}
 		}
 
@@ -190,16 +209,23 @@ export const define = async function(elementName: string, config: DefineConfig) 
     }
 
     getAttributeValue(name: string) {
-      const value = this.getAttribute(name);
+      let   value  = this.getAttribute(name);
+      const schema = attributesSchema[name];
 
-      if(attributesSchema[name]) {
-        return attributesSchema[name](value);
+      if(schema) {
+        const unserializer = DefineTypesUnserialize.get(schema);
+        if(unserializer) {
+          value = unserializer(value);
+        } else {
+          value = schema(value);
+        }
       }
 
       return value;
     }
 
     setAttributeValue(name: string, value: any) {
+      console.log("extends -> setAttributeValue -> value", value)
       const schema = attributesSchema[name];
 
       if(schema && DefineTypesSerialize.has(schema)) {
