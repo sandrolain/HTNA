@@ -1,12 +1,18 @@
 {
-  "name": "webatom",
-  "version": "1.0.0",
+  "name": "slot",
+  "version": "0.0.1",
   "description": "Simple library for Web Components definition",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
+    "test": "jest --env=jest-environment-happy-dom",
     "build": "npx tsc",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "serve": "npx tsc && npx light-server -s . -p 5678 -o http://localhost:5678/demo -w \"src/**/*.*, demo/*.* # npx tsc\""
+    "serve": "npx tsc && npx light-server -s . -p 5678 -o http://localhost:5678/demo -w \"src/**/*.*, demo/*.* # npx tsc\"",
+    "prepublish": "npx tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sandrolain/slot.git"
   },
   "keywords": [
     "web",
@@ -20,8 +26,14 @@
   "author": "Sandro Lain",
   "license": "ISC",
   "devDependencies": {
+    "@types/jest": "^25.1.4",
+    "@types/node": "^13.9.2",
     "eslint": "^6.8.0",
+    "happy-dom": "^0.12.1",
+    "jest": "^25.1.0",
+    "jest-environment-happy-dom": "0.0.41",
     "light-server": "^2.6.4",
+    "ts-jest": "^25.2.1",
     "typescript": "^3.8.3"
   }
 }
