@@ -12,16 +12,22 @@ export type DefineStyles = string | DefineStylesStructure;
 export type DefineAttributesMap = Map<string, any>;
 export type DefineSlotContentAttribute = HTMLElement | DocumentFragment | Text | string | number;
 export interface DefineControllerArguments {
-  elementNode: HTMLElement,
-  shadowDOMAccess: DefineShadowDOMAccess,
-  attributesMap: DefineAttributesMap
+  elementNode: HTMLElement;
+  shadowDOMAccess: DefineShadowDOMAccess;
+  attributesMap: DefineAttributesMap;
+}
+export interface DefineControllerResult {
+  connectedCallback?: () => void;
+  disconnectedCallback?: () => void;
+  adoptedCallback?: () => void;
+  attributeChangedCallback?: (name: string, oldValue: string, newValue: string) => void;
 }
 
 export interface DefineConfig {
   render?: (controllerArguments: DefineControllerArguments) => DefineTemplate;
   styles?: DefineStyles;
   stylesUrl?: string;
-  controller?: (controllerArguments: DefineControllerArguments) => void;
+  controller?: (controllerArguments: DefineControllerArguments) => DefineControllerResult;
   attributesSchema?: DefineAttributesSchema,
   attributes?: DefineAttributesMap,
   observedAttributes?: string[];
@@ -99,6 +105,7 @@ export const define = async function(elementName: string, config: DefineConfig) 
 
     #shadow: ShadowRoot;
     #shadowDOMAccess: DefineShadowDOMAccess;
+    #controllerResult: DefineControllerResult = {};
 
 		constructor() {
       super();
@@ -141,30 +148,43 @@ export const define = async function(elementName: string, config: DefineConfig) 
       }
 
 			if(config.controller) {
-			    config.controller(controllerArguments);
+        this.#controllerResult = config.controller(controllerArguments) || {};
 			}
-		}
+    }
 
 		connectedCallback() {
+      if(this.#controllerResult.connectedCallback) {
+        this.#controllerResult.connectedCallback();
+      }
 			const event = new CustomEvent("connected");
       this.dispatchEvent(event);
 		}
 
 		disconnectedCallback() {
+      if(this.#controllerResult.disconnectedCallback) {
+        this.#controllerResult.disconnectedCallback();
+      }
 			const event = new CustomEvent("disconnected");
       this.dispatchEvent(event);
 		}
 
 		adoptedCallback() {
+      if(this.#controllerResult.adoptedCallback) {
+        this.#controllerResult.adoptedCallback();
+      }
 			const event = new CustomEvent("adopted");
       this.dispatchEvent(event);
 		}
 
 		attributeChangedCallback(name: string, oldValue: any, newValue: any) {
-      const event = new CustomEvent("attributechanged", {
-        detail: { name, oldValue, newValue }
-      });
-      this.dispatchEvent(event);
+      if(this.#controllerResult.attributeChangedCallback) {
+        this.#controllerResult.attributeChangedCallback(name, oldValue, newValue);
+      }
+      const eventNames = ["attributechanged", `attributechanged:${name}`];
+      for(let eventName of eventNames) {
+        const event = new CustomEvent(eventName, { detail: { name, oldValue, newValue } });
+        this.dispatchEvent(event);
+      }
     }
 
     bubbleEvent(name: string, detail: any): boolean {
@@ -225,7 +245,6 @@ export const define = async function(elementName: string, config: DefineConfig) 
     }
 
     setAttributeValue(name: string, value: any) {
-      console.log("extends -> setAttributeValue -> value", value)
       const schema = attributesSchema[name];
 
       if(schema && DefineTypesSerialize.has(schema)) {
@@ -250,7 +269,6 @@ export const define = async function(elementName: string, config: DefineConfig) 
       } else {
         slotNode.appendChild(node as Node);
       }
-
       this.appendChild(slotNode);
       return slotNode;
     }
