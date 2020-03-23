@@ -3,3 +3,4 @@ dist
 trash
 .DS_Store
 .vscode
+typedocs

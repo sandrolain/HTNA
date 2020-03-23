@@ -8,7 +8,9 @@
     "test": "jest --env=jest-environment-happy-dom",
     "build": "npx tsc",
     "serve": "npx tsc && npx light-server -s . -p 5678 -o http://localhost:5678/demo -w \"src/**/*.*, demo/*.* # npx tsc\"",
-    "prepublish": "npx tsc"
+    "prepublish": "npx tsc",
+    "build:docs": "npx typedoc --out ./typedocs ./src",
+    "serve:docs": "npm run build:docs && npx open-cli ./typedocs/index.html"
   },
   "repository": {
     "type": "git",
@@ -33,7 +35,9 @@
     "jest": "^25.1.0",
     "jest-environment-happy-dom": "0.0.41",
     "light-server": "^2.6.4",
+    "open-cli": "^6.0.0",
     "ts-jest": "^25.2.1",
+    "typedoc": "^0.17.3",
     "typescript": "^3.8.3"
   }
 }
