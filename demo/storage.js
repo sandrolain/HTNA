@@ -35,10 +35,21 @@ export class Storage {
   remove(item) {
     var index = this.data.indexOf(item);
     if(index > 0) {
-      this.data.splice(index);
+      this.data.splice(index, 1);
       this.save();
       this.fire("update");
     }
+  }
+
+  replace(oldItem, item) {
+    var index = this.data.indexOf(oldItem);
+    if(index > 0) {
+      this.data.splice(index, 1, item);
+    } else {
+      this.data.push(item);
+    }
+    this.save();
+    this.fire("update");
   }
 
   load() {

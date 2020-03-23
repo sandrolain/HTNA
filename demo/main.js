@@ -1,40 +1,55 @@
 import { Storage } from "./storage.js";
-import { define, DefineTypes } from "../dist/index.js";
+import { define } from "../dist/index.js";
 
 const model = new Storage();
 
 define("demo-app", {
-  render: () => `<slot></slot>`
+  render: () => /*html*/`<slot></slot>`
 });
-
 
 define("demo-item", {
   observedAttributes: ["selected"],
   attributesSchema: {
     selected: Boolean
   },
-  styles: `
+  styles: /*css*/`
+    div {
+      padding: 0.5em 1em;
+      line-height: 1em;
+    }
     .selected {
       background: #336699;
       color: #FFFFFF;
     }
   `,
-  render: ({ elementNode, attributesMap }) => {
+  render: () => {
     const itemNode = document.createElement('div');
     itemNode.appendChild(document.createElement("slot"));
-    elementNode.addEventListener("attributechanged", (event) => {
-      if(event.detail.name === "selected") {
-        itemNode.classList.toggle("selected", elementNode.getAttributeValue("selected"));
-        console.log("itemNode", itemNode)
-      }
+    return itemNode;
+  },
+  controller: ({ elementNode, shadowDOMAccess }) => {
+
+    const updateSelected = () => {
+      shadowDOMAccess.$("div").classList.toggle("selected", elementNode.getAttributeValue("selected"));
+    };
+
+    elementNode.addEventListener("attributechanged:selected", (event) => {
+      updateSelected();
     })
 
-    return itemNode;
+    updateSelected();
   }
 });
 
 define("demo-list", {
-  render: () => `<div id="list"><slot></slot></div>`,
+  styles: /*css*/`
+    #list {
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+    }
+  `,
+  render: () => /*html*/`<div id="list"><slot></slot></div>`,
   controller: ({ elementNode }) => {
     let selectedItem;
     const updateList = () => {
@@ -45,6 +60,7 @@ define("demo-list", {
         itemNode.setAttributeValue("selected", (selectedItem === item));
         itemNode.addEventListener("click", () => {
           selectedItem = item;
+          elementNode.fireEvent("itemSelected", item);
           updateList();
         });
         $f.appendChild(itemNode);
@@ -63,7 +79,30 @@ define("demo-list", {
 
 
 define("demo-detail", {
-  render: () => `
+  styles: /*css*/`
+    * {
+      box-sizing: border-box;
+    }
+    div {
+      padding: 0em 1em;
+      margin: 1em 0em;
+    }
+    input, textarea {
+      width: 100%;
+      border: 1px solid #999999;
+      padding: 1em;
+      height: 3em;
+      line-height: 1em;
+      font-size: 14px;
+    }
+    input:focus, textarea:focus {
+      border-color: #336699;
+    }
+    textarea {
+      height: 10em;
+    }
+  `,
+  render: () => /*html*/`
     <form id="form">
       <div>
         <input type="text" name="title" placeholder="Title" />
@@ -77,18 +116,28 @@ define("demo-detail", {
     </form>
   `,
   controller:({ shadowDOMAccess }) => {
+    let selectedData;
     const $form = shadowDOMAccess.$("#form");
     $form.addEventListener("submit", (e) => {
       e.preventDefault();
       const data = new FormData($form);
-      if(model.add(Object.fromEntries(data))) {
-        $form.reset();
+      const dataObj = Object.fromEntries(data);
+
+      if(selectedData) {
+        model.replace(selectedData, dataObj)
+      } else {
+        model.add(dataObj);
       }
+
+      selectedData = null;
+      $form.reset();
     });
 
     const demoList = document.querySelector("demo-list");
     demoList.addEventListener("itemSelected", (event) => {
-      console.log("event.detail", event.detail)
+      selectedData = event.detail;
+      shadowDOMAccess.$(`[name="title"]`).value = selectedData.title;
+      shadowDOMAccess.$(`[name="body"]`).value = selectedData.body;
     })
   }
 })

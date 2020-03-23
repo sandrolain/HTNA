@@ -27,8 +27,6 @@ demo-list {
 
 demo-item {
   display: block;
-  padding: 0.5em 1em;
-  line-height: 1em;
   border-bottom: 1px solid #CCCCCC;
   cursor: pointer;
 }
@@ -38,4 +36,7 @@ demo-item:nth-of-type(odd) {
 demo-item:hover {
   background-color: #DDEEFF;
 }
+
+demo-detail {
+  flex: 1;
 }
