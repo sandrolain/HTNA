@@ -23,7 +23,7 @@ export type ElementAttributesMap = Map<string, any>;
  * @param children An Array of DOM Node or string to be appended as Element's children
  * @returns The new DOM HTMLElement node for the specified tag name
  */
-export const element = (tagName: string, attributes?: ElementAttributesMap, children?: (Node | string)[]): HTMLElement => {
+export function element (tagName: string, attributes?: ElementAttributesMap, children?: (Node | string)[]): HTMLElement {
   const node = document.createElement(tagName);
   if(attributes) {
     for(const [name, value] of attributes.entries()) {
@@ -38,7 +38,7 @@ export const element = (tagName: string, attributes?: ElementAttributesMap, chil
     node.append(...children);
   }
   return node;
-};
+}
 
 
 /**
@@ -46,13 +46,13 @@ export const element = (tagName: string, attributes?: ElementAttributesMap, chil
  * @param string The string to escape
  * @returns The escaped HTML string
  */
-export const htmlentities = (string: string): string => {
+export function htmlEntities (string: string): string {
   return string.replace(/&/g, "&amp;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-};
+}
 
 export type ForEachIterable =
   | Map<any, any>
