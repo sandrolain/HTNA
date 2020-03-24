@@ -1,9 +1,35 @@
+const { compilerOptions } = require("./tsconfig.json");
+
+Object.assign(compilerOptions, {
+  inlineSourceMap: true
+});
+
 module.exports = {
-  roots: ['./src'],
+  preset: "ts-jest",
+  roots: ["./src"],
   transform: {
-    '^.+\\.tsx?$': 'ts-jest',
+    "^.+\\.tsx?$": "ts-jest"
   },
-  testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.tsx?$',
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  testEnvironment: "jest-environment-happy-dom"
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80
+    }
+  },
+  collectCoverageFrom: [
+    "<rootDir>/src/**/*.ts",
+    "!<rootDir>/src/**/*.spec.ts"
+  ],
+  coverageDirectory: "./coverage",
+  coverageReporters: ["json", "lcov", "text", "clover"],
+  testRegex: "(/__tests__/.*|(\\.|/)(test|spec))\\.tsx?$",
+  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
+  testEnvironment: "jest-environment-happy-dom",
+  globals: {
+    "ts-jest": {
+      tsConfig: compilerOptions
+    }
+  }
 };

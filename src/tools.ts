@@ -21,14 +21,14 @@ export type ElementAttributesMap = Map<string, any>;
  * @param tagName The tag name of the element
  * @param attributes A Map with pairs name-value of the attributes to set to the element. Function values will be added as listeners
  * @param children An Array of DOM Node or string to be appended as Element's children
- * @returns The new DOM HTMLElement node for the specied tag name
+ * @returns The new DOM HTMLElement node for the specified tag name
  */
 export const element = (tagName: string, attributes?: ElementAttributesMap, children?: (Node | string)[]): HTMLElement => {
   const node = document.createElement(tagName);
   if(attributes) {
     for(const [name, value] of attributes.entries()) {
       if(typeof value === "function") {
-        node.addEventListener(name, value)
+        node.addEventListener(name, value);
       } else {
         node.setAttribute(name, String(value));
       }
@@ -47,11 +47,11 @@ export const element = (tagName: string, attributes?: ElementAttributesMap, chil
  * @returns The escaped HTML string
  */
 export const htmlentities = (string: string): string => {
-  return string.replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  return string.replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 };
 
 export type ForEachIterable =
@@ -61,20 +61,20 @@ export type ForEachIterable =
   | Record<string, any>;
 
 /**
- *
- * @param obj
- * @param cb
+ * Invoke a *callback* function for every key-value pair of the passed {@link ForEachIterable} data
+ * @param list The iterable data
+ * @param callback The callback function invoked for every key-value pair
  */
-export function forEach(
-  obj: ForEachIterable,
-  cb: (value: any, key: any) => any
+export function forEach (
+  list: ForEachIterable,
+  callback: (value: any, key: any) => any
 ): void {
-  if (obj) {
-    if (obj instanceof Map || obj instanceof Array || obj instanceof Set) {
-      obj.forEach(cb);
-    } else if (typeof obj === "object") {
-      for (const key in obj) {
-        cb.call(obj, obj[key], key);
+  if(list) {
+    if(list instanceof Map || list instanceof Array || list instanceof Set) {
+      list.forEach(callback);
+    } else if(typeof list === "object") {
+      for(const key in list) {
+        callback.call(list, list[key], key);
       }
     }
   }

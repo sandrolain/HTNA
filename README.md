@@ -1,1 +1,1 @@
-# SLOT: light custom elements library
+# SLOT: Light custom elements library

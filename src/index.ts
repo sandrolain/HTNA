@@ -4,7 +4,7 @@ export interface DefineStylesStructure {
 }
 
 export interface DefineAttributesSchema {
-  [key: string]: (value: string) => any
+  [key: string]: (value: string) => any;
 }
 
 export type DefineTemplate = string | HTMLElement | DocumentFragment;
@@ -28,12 +28,12 @@ export interface DefineConfig {
   styles?: DefineStyles;
   stylesUrl?: string;
   controller?: (controllerArguments: DefineControllerArguments) => DefineControllerResult;
-  attributesSchema?: DefineAttributesSchema,
-  attributes?: DefineAttributesMap,
+  attributesSchema?: DefineAttributesSchema;
+  attributes?: DefineAttributesMap;
   observedAttributes?: string[];
   listeners?: {
-    [key: string]: EventListenerOrEventListenerObject
-  },
+    [key: string]: EventListenerOrEventListenerObject;
+  };
   // Shadow DOM
   mode?: "open" | "closed";
   // ElementDefinitionOptions
@@ -43,19 +43,19 @@ export interface DefineConfig {
 export type DefineType = (value: string) => any;
 
 export const DefineTypes: {[key: string]: DefineType} = {
-  JSON: function(value: string): any {
+  JSON: function (value: string): any {
     return JSON.parse(value);
   },
   Boolean: Boolean
 };
 
 export const DefineTypesSerialize: Map<DefineType, (value: any) => string> = new Map();
-DefineTypesSerialize.set(DefineTypes.JSON, function(value: any): string {
+DefineTypesSerialize.set(DefineTypes.JSON, function (value: any): string {
   return JSON.stringify(value);
 });
 
 export const DefineTypesUnserialize: Map<DefineType, (value: string) => any> = new Map();
-DefineTypesUnserialize.set(Boolean, function(value: string): boolean {
+DefineTypesUnserialize.set(Boolean, function (value: string): boolean {
   if(value === "false" || value === "off" || value === "") {
     return false;
   }
@@ -64,20 +64,20 @@ DefineTypesUnserialize.set(Boolean, function(value: string): boolean {
 
 export class DefineShadowDOMAccess {
   #shadow: ShadowRoot;
-  constructor(shadow: ShadowRoot) {
+  constructor (shadow: ShadowRoot) {
     this.#shadow = shadow;
   }
 
-  $(selector: string): HTMLElement {
+  $ (selector: string): HTMLElement {
     return this.#shadow.querySelector(selector);
   }
 
-  $$(selector: string): NodeList {
+  $$ (selector: string): NodeList {
     return this.#shadow.querySelectorAll(selector);
   }
 }
 
-export const define = async function(elementName: string, config: DefineConfig) {
+export const define = async function (elementName: string, config: DefineConfig): Promise<typeof HTMLElement> {
 
   if(customElements.get(elementName)) {
     throw new Error(`"${elementName}" element already defined`);
@@ -85,7 +85,7 @@ export const define = async function(elementName: string, config: DefineConfig) 
 
   let stylesCSS: string = "";
 
-	if(config.stylesUrl) {
+  if(config.stylesUrl) {
     stylesCSS = await (await fetch(config.stylesUrl)).text();
   } else if(config.styles) {
     if(typeof config.styles !== "string") {
@@ -98,8 +98,8 @@ export const define = async function(elementName: string, config: DefineConfig) 
   const attributesSchema: DefineAttributesSchema = config.attributesSchema || {};
   const observedAttributes: string[] = config.observedAttributes || [];
 
-	const ElementClass = class extends HTMLElement {
-    static get observedAttributes() {
+  const ElementClass = class extends HTMLElement {
+    static get observedAttributes (): string[] {
       return observedAttributes;
     }
 
@@ -107,12 +107,12 @@ export const define = async function(elementName: string, config: DefineConfig) 
     #shadowDOMAccess: DefineShadowDOMAccess;
     #controllerResult: DefineControllerResult = {};
 
-		constructor() {
+    constructor () {
       super();
 
-			this.#shadow = this.attachShadow({
-				mode: config.mode || "closed"
-			});
+      this.#shadow = this.attachShadow({
+        mode: config.mode || "closed"
+      });
 
       if(config.attributes) {
         this.setAttributesMap(config.attributes);
@@ -131,11 +131,11 @@ export const define = async function(elementName: string, config: DefineConfig) 
 
         if(typeof renderResult === "string") {
           this.#shadow.innerHTML = renderResult;
-        } else if (renderResult instanceof HTMLTemplateElement) {
+        } else if(renderResult instanceof HTMLTemplateElement) {
           this.#shadow.appendChild(
             renderResult.content.cloneNode(true)
           );
-        } else if (renderResult instanceof HTMLElement || renderResult instanceof DocumentFragment) {
+        } else if(renderResult instanceof HTMLElement || renderResult instanceof DocumentFragment) {
           this.#shadow.appendChild(renderResult);
         }
       }
@@ -147,51 +147,51 @@ export const define = async function(elementName: string, config: DefineConfig) 
         this.#shadow.appendChild(styleNode);
       }
 
-			if(config.controller) {
+      if(config.controller) {
         this.#controllerResult = config.controller(controllerArguments) || {};
-			}
+      }
     }
 
-		connectedCallback() {
+    connectedCallback (): void {
       if(this.#controllerResult.connectedCallback) {
         this.#controllerResult.connectedCallback();
       }
-			const event = new CustomEvent("connected");
+      const event = new CustomEvent("connected");
       this.dispatchEvent(event);
-		}
+    }
 
-		disconnectedCallback() {
+    disconnectedCallback (): void {
       if(this.#controllerResult.disconnectedCallback) {
         this.#controllerResult.disconnectedCallback();
       }
-			const event = new CustomEvent("disconnected");
+      const event = new CustomEvent("disconnected");
       this.dispatchEvent(event);
-		}
+    }
 
-		adoptedCallback() {
+    adoptedCallback (): void {
       if(this.#controllerResult.adoptedCallback) {
         this.#controllerResult.adoptedCallback();
       }
-			const event = new CustomEvent("adopted");
+      const event = new CustomEvent("adopted");
       this.dispatchEvent(event);
-		}
+    }
 
-		attributeChangedCallback(name: string, oldValue: any, newValue: any) {
+    attributeChangedCallback (name: string, oldValue: any, newValue: any): void {
       if(this.#controllerResult.attributeChangedCallback) {
         this.#controllerResult.attributeChangedCallback(name, oldValue, newValue);
       }
       const eventNames = ["attributechanged", `attributechanged:${name}`];
-      for(let eventName of eventNames) {
+      for(const eventName of eventNames) {
         const event = new CustomEvent(eventName, { detail: { name, oldValue, newValue } });
         this.dispatchEvent(event);
       }
     }
 
-    bubbleEvent(name: string, detail: any): boolean {
+    bubbleEvent (name: string, detail: any): boolean {
       return this.fireEvent(name, detail, true);
     }
 
-    fireEvent(name: string, detail: any, bubbles: boolean = false): boolean {
+    fireEvent (name: string, detail: any, bubbles: boolean = false): boolean {
       const event = new CustomEvent(name, {
         bubbles,
         composed: true,
@@ -200,17 +200,17 @@ export const define = async function(elementName: string, config: DefineConfig) 
       return this.dispatchEvent(event);
     }
 
-    when(name: string): Promise<Event> {
+    when (name: string): Promise<Event> {
       return new Promise((resolve) => {
-        const callback = (event: Event) => {
+        const callback = (event: Event): void => {
           this.removeEventListener(name, callback);
           resolve(event);
-        }
+        };
         this.addEventListener(name, callback);
       });
     }
 
-    getAttributesMap(): DefineAttributesMap {
+    getAttributesMap (): DefineAttributesMap {
       const attributes = this.attributes;
       const attributesMap: DefineAttributesMap = new Map();
 
@@ -222,13 +222,13 @@ export const define = async function(elementName: string, config: DefineConfig) 
       return attributesMap;
     }
 
-    setAttributesMap(attributesMap: DefineAttributesMap): void {
+    setAttributesMap (attributesMap: DefineAttributesMap): void {
       for(const [name, value] of attributesMap) {
         this.setAttributeValue(name, value);
       }
     }
 
-    getAttributeValue(name: string) {
+    getAttributeValue (name: string): any {
       let   value  = this.getAttribute(name);
       const schema = attributesSchema[name];
 
@@ -244,7 +244,7 @@ export const define = async function(elementName: string, config: DefineConfig) 
       return value;
     }
 
-    setAttributeValue(name: string, value: any) {
+    setAttributeValue (name: string, value: any): void {
       const schema = attributesSchema[name];
 
       if(schema && DefineTypesSerialize.has(schema)) {
@@ -255,12 +255,12 @@ export const define = async function(elementName: string, config: DefineConfig) 
       this.setAttribute(name, value.toString());
     }
 
-    replaceSlot(slotName: string, node: DefineSlotContentAttribute, tagName: string = "div"): HTMLElement {
+    replaceSlot (slotName: string, node: DefineSlotContentAttribute, tagName: string = "div"): HTMLElement {
       this.removeSlot(slotName);
       return this.appendSlot(slotName, node, tagName);
     }
 
-    appendSlot(slotName: string, node: DefineSlotContentAttribute, tagName: string = "div"): HTMLElement {
+    appendSlot (slotName: string, node: DefineSlotContentAttribute, tagName: string = "div"): HTMLElement {
       const slotNode = document.createElement(tagName);
       slotNode.setAttribute("slot", slotName);
       if(["string", "number"].includes(typeof node)) {
@@ -273,14 +273,14 @@ export const define = async function(elementName: string, config: DefineConfig) 
       return slotNode;
     }
 
-    removeSlot(slotName: string): HTMLElement {
+    removeSlot (slotName: string): HTMLElement {
       const slotNode = this.querySelector<HTMLElement>(`*[slot="${slotName}"]`);
       if(slotNode) {
         this.removeChild(slotNode);
       }
       return slotNode;
     }
-	}
+  };
 
   const elementOptions: ElementDefinitionOptions = {};
 
@@ -291,4 +291,4 @@ export const define = async function(elementName: string, config: DefineConfig) 
   customElements.define(elementName, ElementClass, elementOptions);
 
   return ElementClass;
-}
+};
