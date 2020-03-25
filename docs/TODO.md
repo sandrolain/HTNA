@@ -1,10 +1,11 @@
 # ToDo
 
 - [ ] "slotchange" event
-- [ ] initialization parameter adn method to configure custom hooks
+- [ ] initialization parameter and method to configure custom hooks
 - [ ] method to call custom hooks
 - [ ] function as controller argument to simple add listener
 - [ ] export function to simple create elements : tagName + attributesMap
+- [ ] possibility to pass a different HTMLElement type class
 
 
 ## Secondary

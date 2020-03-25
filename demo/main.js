@@ -23,7 +23,7 @@ define("demo-item", {
     }
   `,
   render: () => {
-    const itemNode = document.createElement('div');
+    const itemNode = document.createElement("div");
     itemNode.appendChild(document.createElement("slot"));
     return itemNode;
   },
@@ -33,9 +33,9 @@ define("demo-item", {
       shadowDOMAccess.$("div").classList.toggle("selected", elementNode.getAttributeValue("selected"));
     };
 
-    elementNode.addEventListener("attributechanged:selected", (event) => {
+    elementNode.addEventListener("attributechanged:selected", () => {
       updateSelected();
-    })
+    });
 
     updateSelected();
   }
@@ -65,7 +65,7 @@ define("demo-list", {
         });
         $f.appendChild(itemNode);
       });
-      elementNode.innerHTML = '';
+      elementNode.innerHTML = "";
       elementNode.appendChild($f);
     };
     model.on("update", () => {
@@ -75,8 +75,6 @@ define("demo-list", {
     updateList();
   }
 });
-
-
 
 define("demo-detail", {
   styles: /*css*/`
@@ -138,6 +136,6 @@ define("demo-detail", {
       selectedData = event.detail;
       shadowDOMAccess.$(`[name="title"]`).value = selectedData.title;
       shadowDOMAccess.$(`[name="body"]`).value = selectedData.body;
-    })
+    });
   }
-})
+});
