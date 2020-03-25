@@ -1,5 +1,8 @@
-# ToDo
+# TODO
 
+- [ ] Fix tests coverage!!!
+- [ ] Complete typedocs
+- [ ] Add examples to typedocs or separate demo
 - [ ] "slotchange" event
 - [ ] initialization parameter and method to configure custom hooks
 - [ ] method to call custom hooks
