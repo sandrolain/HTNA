@@ -9,6 +9,7 @@
 - [ ] function as controller argument to simple add listener
 - [ ] export function to simple create elements : tagName + attributesMap
 - [ ] possibility to pass a different HTMLElement type class
+- [ ] "observed" flag into attribute schema definition
 
 
 ## Secondary

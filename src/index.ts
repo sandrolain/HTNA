@@ -1,6 +1,6 @@
 
-export interface DefineStylesStructure {
-  [key: string]: string | DefineStylesStructure;
+export interface DefineStyleStructure {
+  [key: string]: string | DefineStyleStructure;
 }
 
 export interface DefineAttributesSchema {
@@ -8,7 +8,7 @@ export interface DefineAttributesSchema {
 }
 
 export type DefineTemplate = string | HTMLElement | DocumentFragment;
-export type DefineStyles = string | DefineStylesStructure;
+export type DefineStyle = string | DefineStyleStructure;
 export type DefineAttributesMap = Map<string, any>;
 export type DefineSlotContentAttribute = HTMLElement | DocumentFragment | Text | string | number;
 export interface DefineControllerArguments {
@@ -23,11 +23,15 @@ export interface DefineControllerResult {
   attributeChangedCallback?: (name: string, oldValue: string, newValue: string) => void;
 }
 
+export type DefineRenderFunction = (controllerArguments: DefineControllerArguments) => DefineTemplate;
+export type DefineControllerFunction = (controllerArguments: DefineControllerArguments) => DefineControllerResult;
+
 export interface DefineConfig {
-  render?: (controllerArguments: DefineControllerArguments) => DefineTemplate;
-  styles?: DefineStyles;
-  stylesUrl?: string;
-  controller?: (controllerArguments: DefineControllerArguments) => DefineControllerResult;
+  /** Rendering function used to generate the custom element HTML content */
+  render: DefineRenderFunction;
+  style?: DefineStyle;
+  styleUrl?: string;
+  controller?: DefineControllerFunction;
   attributesSchema?: DefineAttributesSchema;
   attributes?: DefineAttributesMap;
   observedAttributes?: string[];
@@ -83,15 +87,16 @@ export const define = async function (elementName: string, config: DefineConfig)
     throw new Error(`"${elementName}" element already defined`);
   }
 
-  let stylesCSS: string = "";
+  let styleCSS: string = "";
 
-  if(config.stylesUrl) {
-    stylesCSS = await (await fetch(config.stylesUrl)).text();
-  } else if(config.styles) {
-    if(typeof config.styles !== "string") {
-      // TODO: convert styles structure to string
+  if(config.styleUrl) {
+    const styleResult = await fetch(config.stylUrl);
+    styleCSS = await styleResult.text();
+  } else if(config.style) {
+    if(typeof config.style !== "string") {
+      // TODO: convert style structure to string
     } else {
-      stylesCSS = config.styles;
+      styleCSS = config.style;
     }
   }
 
@@ -140,10 +145,10 @@ export const define = async function (elementName: string, config: DefineConfig)
         }
       }
 
-      if(stylesCSS) {
+      if(styleCSS) {
         const styleNode = document.createElement("style");
         styleNode.setAttribute("type", "text/css");
-        styleNode.innerHTML = stylesCSS;
+        styleNode.innerHTML = styleCSS;
         this.#shadow.appendChild(styleNode);
       }
 
