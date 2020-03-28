@@ -74,7 +74,7 @@ describe("define", () => {
     `;
     await define("test-style", {
       render: () => "<em>html test</em>",
-      styles: styles
+      style: styles
     });
 
     const el = document.createElement("test-style");

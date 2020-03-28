@@ -7,9 +7,10 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "jest --env=jest-environment-happy-dom",
-    "test:coverage": "jest --coverage --env=jest-environment-happy-dom && open ./coverage/lcov-report/index.html",
+    "test:coverage": "jest --coverage --env=jest-environment-happy-dom",
+    "test:coverage:open": "jest --coverage --env=jest-environment-happy-dom && open ./coverage/lcov-report/index.html",
     "build": "npx tsc",
-    "serve": "npx tsc && npx light-server -s . -p 5678 -o http://localhost:5678/demo -w \"src/**/*.*, demo/*.* # npx tsc\"",
+    "serve:demo": "npx tsc && npx light-server -s . -p 5678 -o -w \"src/**/*.*, demo/*.* # npx tsc\"",
     "build:docs": "npx typedoc --out ./typedocs ./src",
     "serve:docs": "npm run build:docs && npx open-cli ./typedocs/index.html",
     "prepare": "npx tsc"

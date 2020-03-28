@@ -12,7 +12,7 @@ define("demo-item", {
   attributesSchema: {
     selected: Boolean
   },
-  styles: /*css*/`
+  style: /*css*/`
     div {
       padding: 0.5em 1em;
       line-height: 1em;
@@ -42,7 +42,7 @@ define("demo-item", {
 });
 
 define("demo-list", {
-  styles: /*css*/`
+  style: /*css*/`
     #list {
       width: 100%;
       height: 100%;
@@ -77,7 +77,7 @@ define("demo-list", {
 });
 
 define("demo-detail", {
-  styles: /*css*/`
+  style: /*css*/`
     * {
       box-sizing: border-box;
     }

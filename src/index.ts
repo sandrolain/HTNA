@@ -90,7 +90,7 @@ export const define = async function (elementName: string, config: DefineConfig)
   let styleCSS: string = "";
 
   if(config.styleUrl) {
-    const styleResult = await fetch(config.stylUrl);
+    const styleResult = await fetch(config.styleUrl);
     styleCSS = await styleResult.text();
   } else if(config.style) {
     if(typeof config.style !== "string") {
