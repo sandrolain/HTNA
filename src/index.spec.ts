@@ -57,13 +57,20 @@ describe("define", () => {
   });
 
   test("Re-define an element with same name trigger Error", async () => {
-    return define("test-dom", {
+
+    define("test-doubled", {
       render: () => "<div></div>"
-    }).then(() => {
-      throw new Error("This should not pass!");
-    }, () => {
-      return true;
     });
+
+    try {
+      define("test-doubled", {
+        render: () => "<div></div>"
+      });
+    } catch(e) {
+      return;
+    }
+
+    throw new Error("This should not pass!");
   });
 
   test("Define and verify an element with style", async () => {
@@ -82,19 +89,6 @@ describe("define", () => {
     const style = el.shadowRoot.querySelector("style");
     expect(style).toBeInstanceOf(HTMLElement);
     expect(style.innerHTML).toStrictEqual(styles);
-  });
-
-  test("Define and verify an element with external css file", async () => {
-    await define("test-style-ext", {
-      render: () => "<em>html test</em>",
-      styleUrl: "https://example.com/style.css"
-    });
-
-    const el = document.createElement("test-style-ext");
-    document.body.appendChild(el);
-    const style = el.shadowRoot.querySelector("style");
-    expect(style).toBeInstanceOf(HTMLElement);
-    expect(style.innerHTML).toStrictEqual(externalStyles);
   });
 
 });

@@ -1,14 +1,9 @@
 
-export interface DefineStyleStructure {
-  [key: string]: string | DefineStyleStructure;
-}
-
 export interface DefineAttributesSchema {
   [key: string]: (value: string) => any;
 }
 
 export type DefineTemplate = string | HTMLElement | DocumentFragment;
-export type DefineStyle = string | DefineStyleStructure;
 export type DefineAttributesMap = Map<string, any>;
 export type DefineSlotContentAttribute = HTMLElement | DocumentFragment | Text | string | number;
 export interface DefineControllerArguments {
@@ -29,8 +24,7 @@ export type DefineControllerFunction = (controllerArguments: DefineControllerArg
 export interface DefineConfig {
   /** Rendering function used to generate the custom element HTML content */
   render: DefineRenderFunction;
-  style?: DefineStyle;
-  styleUrl?: string;
+  style?: string;
   controller?: DefineControllerFunction;
   attributesSchema?: DefineAttributesSchema;
   attributes?: DefineAttributesMap;
@@ -81,23 +75,10 @@ export class DefineShadowDOMAccess {
   }
 }
 
-export const define = async function (elementName: string, config: DefineConfig): Promise<typeof HTMLElement> {
+export function define (elementName: string, config: DefineConfig): typeof HTMLElement {
 
   if(customElements.get(elementName)) {
     throw new Error(`"${elementName}" element already defined`);
-  }
-
-  let styleCSS: string = "";
-
-  if(config.styleUrl) {
-    const styleResult = await fetch(config.styleUrl);
-    styleCSS = await styleResult.text();
-  } else if(config.style) {
-    if(typeof config.style !== "string") {
-      // TODO: convert style structure to string
-    } else {
-      styleCSS = config.style;
-    }
   }
 
   const attributesSchema: DefineAttributesSchema = config.attributesSchema || {};
@@ -145,10 +126,10 @@ export const define = async function (elementName: string, config: DefineConfig)
         }
       }
 
-      if(styleCSS) {
+      if(config.style) {
         const styleNode = document.createElement("style");
         styleNode.setAttribute("type", "text/css");
-        styleNode.innerHTML = styleCSS;
+        styleNode.innerHTML = config.style;
         this.#shadow.appendChild(styleNode);
       }
 

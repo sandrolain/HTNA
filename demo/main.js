@@ -122,7 +122,7 @@ define("demo-detail", {
       const dataObj = Object.fromEntries(data);
 
       if(selectedData) {
-        model.replace(selectedData, dataObj)
+        model.replace(selectedData, dataObj);
       } else {
         model.add(dataObj);
       }
