@@ -1,34 +1,40 @@
 
-export interface DefineAttributesSchema {
-  [key: string]: (value: string) => any;
+
+export type AttributeParseFunction = (value: string) => any;
+export interface AttributesSchema {
+  [key: string]: {
+    type?: AttributeParseFunction;
+    observed?: boolean;
+    property?: boolean;
+  };
 }
 
-export type DefineTemplate = string | HTMLElement | DocumentFragment;
-export type DefineAttributesMap = Map<string, any>;
-export type DefineSlotContentAttribute = HTMLElement | DocumentFragment | Text | string | number;
-export interface DefineControllerArguments {
+export type Template = string | HTMLElement | DocumentFragment;
+export type AttributesMap = Map<string, any>;
+export type SlotContentAttribute = HTMLElement | DocumentFragment | Text | string | number;
+export interface ControllerArguments {
   elementNode: HTMLElement;
-  shadowDOMAccess: DefineShadowDOMAccess;
-  attributesMap: DefineAttributesMap;
+  shadowDOMAccess: ShadowDOMAccess;
+  attributesMap: AttributesMap;
 }
-export interface DefineControllerResult {
+export interface ControllerResult {
   connectedCallback?: () => void;
   disconnectedCallback?: () => void;
   adoptedCallback?: () => void;
   attributeChangedCallback?: (name: string, oldValue: string, newValue: string) => void;
+  listeners?: Record<string, (event: Event) => any>;
 }
 
-export type DefineRenderFunction = (controllerArguments: DefineControllerArguments) => DefineTemplate;
-export type DefineControllerFunction = (controllerArguments: DefineControllerArguments) => DefineControllerResult;
+export type RenderFunction = (controllerArguments: ControllerArguments) => Template;
+export type ControllerFunction = (controllerArguments: ControllerArguments) => ControllerResult;
 
 export interface DefineConfig {
   /** Rendering function used to generate the custom element HTML content */
-  render: DefineRenderFunction;
+  render: RenderFunction;
   style?: string;
-  controller?: DefineControllerFunction;
-  attributesSchema?: DefineAttributesSchema;
-  attributes?: DefineAttributesMap;
-  observedAttributes?: string[];
+  controller?: ControllerFunction;
+  attributes?: AttributesMap;
+  attributesSchema?: AttributesSchema;
   listeners?: {
     [key: string]: EventListenerOrEventListenerObject;
   };
@@ -38,30 +44,37 @@ export interface DefineConfig {
   extends?: string;
 }
 
-export type DefineType = (value: string) => any;
+export type AttributeType = (value: string) => any;
 
-export const DefineTypes: {[key: string]: DefineType} = {
+export const AttributeTypes: {[key: string]: AttributeType} = {
   JSON: function (value: string): any {
     return JSON.parse(value);
   },
-  Boolean: Boolean
+  Boolean: Boolean,
+  String: String,
+  Number: Number
 };
 
-export const DefineTypesSerialize: Map<DefineType, (value: any) => string> = new Map();
-DefineTypesSerialize.set(DefineTypes.JSON, function (value: any): string {
+export const AttributeTypesSerialize: Map<AttributeType, (value: any) => string> = new Map();
+
+AttributeTypesSerialize.set(AttributeTypes.JSON, function (value: any): string {
   return JSON.stringify(value);
 });
 
-export const DefineTypesUnserialize: Map<DefineType, (value: string) => any> = new Map();
-DefineTypesUnserialize.set(Boolean, function (value: string): boolean {
+
+
+export const AttributeTypesUnserialize: Map<AttributeType, (value: string) => any> = new Map();
+
+AttributeTypesUnserialize.set(Boolean, function (value: string): boolean {
   if(value === "false" || value === "off" || value === "") {
     return false;
   }
   return Boolean(value);
 });
 
-export class DefineShadowDOMAccess {
+export class ShadowDOMAccess {
   #shadow: ShadowRoot;
+
   constructor (shadow: ShadowRoot) {
     this.#shadow = shadow;
   }
@@ -75,14 +88,35 @@ export class DefineShadowDOMAccess {
   }
 }
 
-export function define (elementName: string, config: DefineConfig): typeof HTMLElement {
+export type DefinedElement = typeof HTMLElement;
+
+const elementsMap: Map<string, DefinedElement> = new Map();
+
+
+export function define (elementName: string, config: DefineConfig): DefinedElement {
 
   if(customElements.get(elementName)) {
     throw new Error(`"${elementName}" element already defined`);
   }
 
-  const attributesSchema: DefineAttributesSchema = config.attributesSchema || {};
-  const observedAttributes: string[] = config.observedAttributes || [];
+  const attributesSchema: Record<string, AttributeType> = {};
+  const observedAttributes: string[] = [];
+  const propertyAttributes: string[] = [];
+
+  if(config.attributesSchema) {
+    for(const name in config.attributesSchema) {
+      const attribute = config.attributesSchema[name];
+      if(attribute.type) {
+        attributesSchema[name] = attribute.type;
+      }
+      if(attribute.observed) {
+        observedAttributes.push(name);
+      }
+      if(attribute.property) {
+        propertyAttributes.push(name);
+      }
+    }
+  }
 
   const ElementClass = class extends HTMLElement {
     static get observedAttributes (): string[] {
@@ -90,8 +124,8 @@ export function define (elementName: string, config: DefineConfig): typeof HTMLE
     }
 
     #shadow: ShadowRoot;
-    #shadowDOMAccess: DefineShadowDOMAccess;
-    #controllerResult: DefineControllerResult = {};
+    #shadowDOMAccess: ShadowDOMAccess;
+    #controllerResult: ControllerResult = {};
 
     constructor () {
       super();
@@ -104,9 +138,17 @@ export function define (elementName: string, config: DefineConfig): typeof HTMLE
         this.setAttributesMap(config.attributes);
       }
 
-      this.#shadowDOMAccess = new DefineShadowDOMAccess(this.#shadow);
+      // Add getter / setter for properties
+      for(const attributeName of propertyAttributes) {
+        Object.defineProperty(this, attributeName, {
+          get: () => this.getAttributeValue(attributeName),
+          set: (value: any) => this.setAttributeValue(attributeName, value)
+        });
+      }
 
-      const controllerArguments: DefineControllerArguments = {
+      this.#shadowDOMAccess = new ShadowDOMAccess(this.#shadow);
+
+      const controllerArguments: ControllerArguments = {
         elementNode: this,
         shadowDOMAccess: this.#shadowDOMAccess,
         attributesMap: this.getAttributesMap()
@@ -139,6 +181,8 @@ export function define (elementName: string, config: DefineConfig): typeof HTMLE
     }
 
     connectedCallback (): void {
+      // TODO: Add listeners
+
       if(this.#controllerResult.connectedCallback) {
         this.#controllerResult.connectedCallback();
       }
@@ -147,6 +191,8 @@ export function define (elementName: string, config: DefineConfig): typeof HTMLE
     }
 
     disconnectedCallback (): void {
+      // TODO: Remove listeners
+
       if(this.#controllerResult.disconnectedCallback) {
         this.#controllerResult.disconnectedCallback();
       }
@@ -179,9 +225,10 @@ export function define (elementName: string, config: DefineConfig): typeof HTMLE
 
     fireEvent (name: string, detail: any, bubbles: boolean = false): boolean {
       const event = new CustomEvent(name, {
+        detail,
         bubbles,
         composed: true,
-        detail
+        cancelable: true
       });
       return this.dispatchEvent(event);
     }
@@ -196,9 +243,9 @@ export function define (elementName: string, config: DefineConfig): typeof HTMLE
       });
     }
 
-    getAttributesMap (): DefineAttributesMap {
+    getAttributesMap (): AttributesMap {
       const attributes = this.attributes;
-      const attributesMap: DefineAttributesMap = new Map();
+      const attributesMap: AttributesMap = new Map();
 
       for(let i = 0, len = attributes.length; i < len; i++) {
         const attributeName = attributes[i].name;
@@ -208,7 +255,7 @@ export function define (elementName: string, config: DefineConfig): typeof HTMLE
       return attributesMap;
     }
 
-    setAttributesMap (attributesMap: DefineAttributesMap): void {
+    setAttributesMap (attributesMap: AttributesMap): void {
       for(const [name, value] of attributesMap) {
         this.setAttributeValue(name, value);
       }
@@ -219,7 +266,7 @@ export function define (elementName: string, config: DefineConfig): typeof HTMLE
       const schema = attributesSchema[name];
 
       if(schema) {
-        const unserializer = DefineTypesUnserialize.get(schema);
+        const unserializer = AttributeTypesUnserialize.get(schema);
         if(unserializer) {
           value = unserializer(value);
         } else {
@@ -233,20 +280,20 @@ export function define (elementName: string, config: DefineConfig): typeof HTMLE
     setAttributeValue (name: string, value: any): void {
       const schema = attributesSchema[name];
 
-      if(schema && DefineTypesSerialize.has(schema)) {
-        const serializer = DefineTypesSerialize.get(schema);
+      if(schema && AttributeTypesSerialize.has(schema)) {
+        const serializer = AttributeTypesSerialize.get(schema);
         value = serializer(value);
       }
 
       this.setAttribute(name, value.toString());
     }
 
-    replaceSlot (slotName: string, node: DefineSlotContentAttribute, tagName: string = "div"): HTMLElement {
+    replaceSlot (slotName: string, node: SlotContentAttribute, tagName: string = "div"): HTMLElement {
       this.removeSlot(slotName);
       return this.appendSlot(slotName, node, tagName);
     }
 
-    appendSlot (slotName: string, node: DefineSlotContentAttribute, tagName: string = "div"): HTMLElement {
+    appendSlot (slotName: string, node: SlotContentAttribute, tagName: string = "div"): HTMLElement {
       const slotNode = document.createElement(tagName);
       slotNode.setAttribute("slot", slotName);
       if(["string", "number"].includes(typeof node)) {
@@ -277,4 +324,10 @@ export function define (elementName: string, config: DefineConfig): typeof HTMLE
   customElements.define(elementName, ElementClass, elementOptions);
 
   return ElementClass;
-};
+}
+
+export class Registry {
+  static getType (elementName: string): DefinedElement {
+    return elementsMap.get(elementName);
+  }
+}
