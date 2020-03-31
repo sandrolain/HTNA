@@ -6,12 +6,12 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "test": "jest --env=jest-environment-happy-dom",
-    "test:coverage": "jest --coverage --env=jest-environment-happy-dom",
-    "test:coverage:open": "jest --coverage --env=jest-environment-happy-dom && open ./coverage/lcov-report/index.html",
+    "test": "jest --runInBand --env=jest-environment-happy-dom",
+    "test:coverage": "jest --runInBand --coverage --env=jest-environment-happy-dom",
+    "test:coverage:open": "jest --runInBand --coverage --env=jest-environment-happy-dom && open ./coverage/lcov-report/index.html",
     "build": "npx tsc",
     "serve:demo": "npx tsc && npx light-server -s . -p 5678 -o -w \"src/**/*.*, demo/*.* # npx tsc\"",
-    "build:docs": "npx typedoc --out ./typedocs ./src",
+    "build:docs": "npx typedoc --plugin typedoc-plugin-no-inherit --out ./typedocs ./src",
     "serve:docs": "npm run build:docs && npx open-cli ./typedocs/index.html",
     "prepare": "npx tsc"
   },
@@ -33,17 +33,18 @@
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^25.1.4",
-    "@types/node": "^13.9.2",
-    "@typescript-eslint/eslint-plugin": "^2.25.0",
-    "@typescript-eslint/parser": "^2.25.0",
+    "@types/node": "^13.9.8",
+    "@typescript-eslint/eslint-plugin": "^2.26.0",
+    "@typescript-eslint/parser": "^2.26.0",
     "eslint": "^6.8.0",
     "happy-dom": "^0.12.1",
-    "jest": "^25.1.0",
+    "jest": "^25.2.4",
     "jest-environment-happy-dom": "0.0.41",
     "light-server": "^2.6.4",
-    "open-cli": "^6.0.0",
-    "ts-jest": "^25.2.1",
+    "open-cli": "^6.0.1",
+    "ts-jest": "^25.3.0",
     "typedoc": "^0.17.3",
+    "typedoc-plugin-no-inherit": "^1.1.10",
     "typescript": "^3.8.3"
   }
 }

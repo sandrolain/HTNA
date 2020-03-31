@@ -1,5 +1,5 @@
 
-import { define } from "./index";
+import { define, create } from "./index";
 
 describe("define", () => {
 
@@ -20,7 +20,7 @@ describe("define", () => {
   });
 
   test("Define a element with HTML render", async () => {
-    await define("test-html", {
+    define("test-html", {
       render: () => "<b>html test</b>"
     });
   });
@@ -39,7 +39,7 @@ describe("define", () => {
   });
 
   test("Define an element with DOM render", async () => {
-    await define("test-dom", {
+    define("test-dom", {
       render: () => {
         const $div = document.createElement("div");
         $div.appendChild(document.createTextNode("DOM test"));
@@ -73,13 +73,13 @@ describe("define", () => {
     throw new Error("This should not pass!");
   });
 
-  test("Define and verify an element with style", async () => {
+  test("Define element style", async () => {
     const styles = `
       em {
         color: #FF0000;
       }
     `;
-    await define("test-style", {
+    define("test-style", {
       render: () => "<em>html test</em>",
       style: styles
     });
@@ -89,6 +89,24 @@ describe("define", () => {
     const style = el.shadowRoot.querySelector("style");
     expect(style).toBeInstanceOf(HTMLElement);
     expect(style.innerHTML).toStrictEqual(styles);
+  });
+
+  test("Define attributes as property", async () => {
+    define("test-property", {
+      render: () => "<em>html test</em>",
+      attributesSchema: {
+        foo: {
+          property: true
+        }
+      }
+    });
+
+    const el = create("test-property");
+    el.setAttribute("foo", "bar");
+    expect(el.foo).toStrictEqual("bar");
+
+    el.foo = "test";
+    expect(el.getAttribute("foo")).toStrictEqual("test");
   });
 
 });

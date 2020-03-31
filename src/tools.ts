@@ -1,5 +1,7 @@
+import { forEach } from "./utils";
 
-export type ElementAttributesMap = Map<string, any>;
+
+export type ElementAttributesMap = Map<string, any> | Record<string, any>;
 
 /**
  * Create a new HTMLElement DOM Node with specified attributes
@@ -26,13 +28,13 @@ export type ElementAttributesMap = Map<string, any>;
 export function element (tagName: string, attributes?: ElementAttributesMap, children?: (Node | string)[]): HTMLElement {
   const node = document.createElement(tagName);
   if(attributes) {
-    for(const [name, value] of attributes.entries()) {
+    forEach(attributes, (value, name) => {
       if(typeof value === "function") {
         node.addEventListener(name, value);
       } else {
         node.setAttribute(name, String(value));
       }
-    }
+    });
   }
   if(children) {
     node.append(...children);

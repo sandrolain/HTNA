@@ -54,4 +54,13 @@ describe("utils", () => {
     });
     expect(total).toStrictEqual(Object.keys(data).length);
   });
+
+  test("forEach() empty value", async () => {
+    let total = 0;
+    forEach(null, () => {
+      total++;
+      throw new Error("Should not iterate");
+    });
+    expect(total).toStrictEqual(0);
+  });
 });
