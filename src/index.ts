@@ -8,6 +8,7 @@ export type AttributesMap = Map<string, any>;
 /** Data type for the accepted content for slots */
 export type SlotContent = HTMLElement | DocumentFragment | Text | string | number;
 
+/** Interface of arguments for render() and controller() functions */
 export interface ControllerArguments {
   /** DOM Element Node for the current instance */
   elementNode: HTMLElement;
@@ -16,15 +17,35 @@ export interface ControllerArguments {
   /** Map with the freezed status of attributes  */
   attributesMap: AttributesMap;
 }
+
+/**
+ * Base callback for ControllerResult
+ */
+export type BaseCallback = () => void;
+
+/**
+ * Attribute change callback callback for ControllerResult
+ * @param name The name of the changed attribute
+ */
+export type AttributeChangedCallback = (name: string, oldValue: string, newValue: string) => void
+
+/** Interface of expected result from controller() function invocation */
 export interface ControllerResult {
-  connectedCallback?: () => void;
-  disconnectedCallback?: () => void;
-  adoptedCallback?: () => void;
-  attributeChangedCallback?: (name: string, oldValue: string, newValue: string) => void;
+  /** Executed at native custom element connectedCallback() */
+  connectedCallback?: BaseCallback;
+  /** Executed at native custom element disconnectedCallback() */
+  disconnectedCallback?: BaseCallback;
+  /** Executed at native custom element adoptedCallback() */
+  adoptedCallback?: BaseCallback;
+  /** Executed at native custom element attributeChangedCallback() */
+  attributeChangedCallback?: AttributeChangedCallback;
+  /** Record of event listeners to add to the Element */
   listeners?: Record<string, EventListenerOrEventListenerObject>;
 }
 
+/** Type of rendering function used to generate the custom element HTML content */
 export type RenderFunction = (controllerArguments: ControllerArguments) => Template;
+/** Type of controller function to apply Element logic */
 export type ControllerFunction = (controllerArguments: ControllerArguments) => ControllerResult;
 
 export interface DefineConfig {
@@ -44,7 +65,7 @@ export interface DefineConfig {
   extends?: string;
 }
 
-
+/** Type of Attribute type specification */
 export type AttributeType = (value: string) => any;
 
 /** Interface for the Attributes Schema */
@@ -63,9 +84,7 @@ export interface AttributesSchema {
 }
 
 export const AttributeTypes: {[key: string]: AttributeType} = {
-  JSON: function (value: string): any {
-    return JSON.parse(value);
-  },
+  JSON: (value: string): any => JSON.parse(value),
   Boolean: Boolean,
   String: String,
   Number: Number
@@ -426,6 +445,9 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
  */
 export function create (elementName: string, options?: ElementCreationOptions, targetDocument: Document = document): DefinedHTMLElement {
   const elementType = elementsMap.get(elementName);
+  if(!elementType) {
+    throw new Error(`"${elementName}" is not a defined custom element`);
+  }
   return targetDocument.createElement(elementName, options) as unknown as typeof elementType;
 }
 
