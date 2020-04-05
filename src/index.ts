@@ -291,6 +291,8 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
         } else if(renderResult instanceof HTMLElement || renderResult instanceof DocumentFragment) {
           this.#shadow.appendChild(renderResult);
         }
+      } else {
+        this.#shadow.innerHTML = "<slot></slot>";
       }
 
       if(config.style) {
