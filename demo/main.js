@@ -10,7 +10,9 @@ define("demo-app", {
 define("demo-item", {
   observedAttributes: ["selected"],
   attributesSchema: {
-    selected: Boolean
+    selected: {
+      type: Boolean
+    }
   },
   style: /*css*/`
     div {

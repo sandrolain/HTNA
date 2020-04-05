@@ -11,7 +11,7 @@ export type SlotContent = HTMLElement | DocumentFragment | Text | string | numbe
 /** Interface of arguments for render() and controller() functions */
 export interface ControllerArguments {
   /** DOM Element Node for the current instance */
-  elementNode: HTMLElement;
+  elementNode: DefinedHTMLElement;
   /** Instance of *ShadowDOMAccess* for the ShadowDOM of current Element */
   shadowDOMAccess: ShadowDOMAccess;
   /** Map with the freezed status of attributes  */
@@ -46,7 +46,7 @@ export interface ControllerResult {
 /** Type of rendering function used to generate the custom element HTML content */
 export type RenderFunction = (controllerArguments: ControllerArguments) => Template;
 /** Type of controller function to apply Element logic */
-export type ControllerFunction = (controllerArguments: ControllerArguments) => ControllerResult;
+export type ControllerFunction = (controllerArguments: ControllerArguments) => ControllerResult | void;
 
 export interface DefineConfig {
   /** Rendering function used to generate the custom element HTML content */
@@ -106,9 +106,12 @@ AttributeTypesSerialize.set(AttributeTypes.JSON, function (value: any): string {
  * Map's items key must be the *AttributeType* class for the data type<br/>
  * Map's items value can be a unserializer function that accept attribute serialized value and return the correct schema type
  */
-export const AttributeTypesUnserialize: Map<AttributeType, (value: string) => any> = new Map();
+export const AttributeTypesUnserialize: Map<AttributeType, (value: string, name: string) => any> = new Map();
 
-AttributeTypesUnserialize.set(Boolean, function (value: string): boolean {
+AttributeTypesUnserialize.set(Boolean, function (value: string, name: string): boolean {
+  if(value === name) {
+    return true;
+  }
   if(value === "false" || value === "off" || value === "") {
     return false;
   }
@@ -129,16 +132,16 @@ export class ShadowDOMAccess {
    * Alias for querySelector inside Element's ShadowDOM
    * @param selector CSS Selector
    */
-  $ (selector: string): HTMLElement {
-    return this.#shadow.querySelector(selector);
+  $<T=HTMLElement> (selector: string): T {
+    return this.#shadow.querySelector(selector) as unknown as T;
   }
 
   /**
    * Alias for querySelectorAll inside Element's ShadowDOM
    * @param selector CSS Selector
    */
-  $$ (selector: string): NodeList {
-    return this.#shadow.querySelectorAll(selector);
+  $$<T=HTMLElement> (selector: string): T[] {
+    return Array.from(this.#shadow.querySelectorAll(selector)) as unknown as T[];
   }
 }
 
@@ -271,7 +274,7 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
       this.#shadowDOMAccess = new ShadowDOMAccess(this.#shadow);
 
       const controllerArguments: ControllerArguments = {
-        elementNode: this,
+        elementNode: this as unknown as DefinedHTMLElement,
         shadowDOMAccess: this.#shadowDOMAccess,
         attributesMap: this.getAttributesMap()
       };
@@ -380,7 +383,7 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
       if(schema) {
         const unserializer = AttributeTypesUnserialize.get(schema);
         if(unserializer) {
-          value = unserializer(value);
+          value = unserializer(value, name);
         } else {
           value = schema(value);
         }
@@ -438,20 +441,6 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
 }
 
 /**
- * Helper method for create
- * @param elementName Custom element Tag name
- * @param options Options for the document.createElement() method
- * @param targetDocument The Document instance over to create the new Element node
- */
-export function create (elementName: string, options?: ElementCreationOptions, targetDocument: Document = document): DefinedHTMLElement {
-  const elementType = elementsMap.get(elementName);
-  if(!elementType) {
-    throw new Error(`"${elementName}" is not a defined custom element`);
-  }
-  return targetDocument.createElement(elementName, options) as unknown as typeof elementType;
-}
-
-/**
  * The *Registry* permit access to the defined custom elements classes and
  */
 export class Registry {
@@ -459,3 +448,6 @@ export class Registry {
     return elementsMap.get(elementName);
   }
 }
+
+
+export * from "./tools";

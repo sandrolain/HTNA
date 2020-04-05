@@ -1,5 +1,5 @@
 
-import { define, create } from "./index";
+import { define, create, DefinedHTMLElement } from "./index";
 
 describe("define", () => {
 
@@ -101,7 +101,7 @@ describe("define", () => {
       }
     });
 
-    const el = create("test-property");
+    const el = create<DefinedHTMLElement>("test-property");
     el.setAttribute("foo", "bar");
     expect(el.foo).toStrictEqual("bar");
 

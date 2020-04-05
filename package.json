@@ -4,16 +4,18 @@
   "description": "Light custom elements library",
   "author": "Sandro Lain",
   "main": "dist/index.js",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "scripts": {
     "test": "jest --runInBand --env=jest-environment-happy-dom",
     "test:coverage": "jest --runInBand --coverage --env=jest-environment-happy-dom",
     "test:coverage:open": "jest --runInBand --coverage --env=jest-environment-happy-dom && open ./coverage/lcov-report/index.html",
-    "build": "npx tsc",
-    "serve:demo": "npx tsc && npx light-server -s . -p 5678 -o -w \"src/**/*.*, demo/*.* # npx tsc\"",
-    "build:docs": "npx typedoc --plugin typedoc-plugin-no-inherit --out ./typedocs ./src",
-    "serve:docs": "npm run build:docs && npx open-cli ./typedocs/index.html",
-    "prepare": "npx tsc"
+    "docs:build": "npx typedoc --plugin typedoc-plugin-no-inherit --out ./typedocs ./src",
+    "docs:serve": "npm run docs:build && npx open-cli ./typedocs/index.html",
+    "serve:demo": "npx run build && npx light-server -s . -p 5678 -o -w \"src/**/*.*, demo/*.* # npx run build\"",
+    "build": "npx rollup -c",
+    "watch": "npx rollup -cw",
+    "prepare": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -32,6 +34,7 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "@rollup/plugin-node-resolve": "^7.1.1",
     "@types/jest": "^25.1.4",
     "@types/node": "^13.9.8",
     "@typescript-eslint/eslint-plugin": "^2.26.0",
@@ -42,6 +45,8 @@
     "jest-environment-happy-dom": "0.0.41",
     "light-server": "^2.6.4",
     "open-cli": "^6.0.1",
+    "rollup": "^2.3.2",
+    "rollup-plugin-typescript2": "^0.27.0",
     "ts-jest": "^25.3.0",
     "typedoc": "^0.17.3",
     "typedoc-plugin-no-inherit": "^1.1.10",
