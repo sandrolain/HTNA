@@ -1,3 +1,9 @@
+// Utils
+function camelCase (str: string): string {
+  return str.replace(/-\D/g, function (m: string): string {
+    return m.charAt(1).toUpperCase();
+  });
+}
 
 /** Data type for the accepted result from the render() function as ShadowDOM content */
 export type Template = string | HTMLElement | DocumentFragment;
@@ -83,6 +89,7 @@ export interface AttributesSchema {
   };
 }
 
+// TODO: docs
 export const AttributeTypes: {[key: string]: AttributeType} = {
   JSON: (value: string): any => JSON.parse(value),
   Boolean: Boolean,
@@ -265,7 +272,8 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
 
       // Add getter / setter for properties
       for(const attributeName of propertyAttributes) {
-        Object.defineProperty(this, attributeName, {
+        const propertyName = camelCase(attributeName);
+        Object.defineProperty(this, propertyName, {
           get: () => this.getAttributeValue(attributeName),
           set: (value: any) => this.setAttributeValue(attributeName, value)
         });
@@ -450,6 +458,3 @@ export class Registry {
     return elementsMap.get(elementName);
   }
 }
-
-
-export * from "./tools";

@@ -1,5 +1,5 @@
 
-import { define, create, DefinedHTMLElement } from "./index";
+import { define, DefinedHTMLElement } from "./index";
 
 describe("define", () => {
 
@@ -101,12 +101,30 @@ describe("define", () => {
       }
     });
 
-    const el = create<DefinedHTMLElement>("test-property");
+    const el = document.createElement("test-property") as DefinedHTMLElement;
     el.setAttribute("foo", "bar");
     expect(el.foo).toStrictEqual("bar");
 
     el.foo = "test";
     expect(el.getAttribute("foo")).toStrictEqual("test");
+  });
+
+  test("Define attributes as property with camelCase translation", async () => {
+    define("test-property-cc", {
+      render: () => "<em>html test</em>",
+      attributesSchema: {
+        "foo-bar": {
+          property: true
+        }
+      }
+    });
+
+    const el = document.createElement("test-property-cc") as DefinedHTMLElement;
+    el.setAttribute("foo-bar", "bar");
+    expect(el.fooBar).toStrictEqual("bar");
+
+    el.fooBar = "test";
+    expect(el.getAttribute("foo-bar")).toStrictEqual("test");
   });
 
 });
