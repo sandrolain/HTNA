@@ -21,9 +21,7 @@ export default [
   },
   {
     input: {
-      index: "src/index.ts",
-      tools: "src/tools.ts",
-      utils: "src/utils.ts"
+      index: "src/index.ts"
     },
     output: [
       {

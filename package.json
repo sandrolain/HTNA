@@ -1,6 +1,6 @@
 {
   "name": "slot",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Light custom elements library",
   "author": "Sandro Lain",
   "main": "dist/cjs/index.js",
@@ -12,15 +12,15 @@
     "dist/umd/*"
   ],
   "scripts": {
-    "test": "jest --runInBand --env=jest-environment-happy-dom",
-    "test:coverage": "jest --runInBand --coverage --env=jest-environment-happy-dom",
-    "test:coverage:open": "jest --runInBand --coverage --env=jest-environment-happy-dom && open ./coverage/lcov-report/index.html",
-    "docs:build": "npx typedoc --plugin typedoc-plugin-no-inherit --out ./typedocs ./src",
-    "docs:serve": "npm run docs:build && npx open-cli ./typedocs/index.html",
-    "serve:demo": "npx run build && npx light-server -s . -p 5678 -o -w \"src/**/*.*, demo/*.* # npx run build\"",
+    "prepare": "npm run build",
     "build": "npx rollup -c",
     "watch": "npx rollup -cw",
-    "prepare": "npm run build"
+    "test": "jest --runInBand",
+    "test:coverage": "jest --runInBand --coverage",
+    "test:coverage:open": "jest --runInBand --coverage && open ./coverage/lcov-report/index.html",
+    "docs:build": "npx typedoc --plugin typedoc-plugin-no-inherit --out ./typedocs ./src",
+    "docs:serve": "npm run docs:build && npx open-cli ./typedocs/index.html",
+    "serve:demo": "npx run build && npx light-server -s . -p 5678 -o -w \"src/**/*.*, demo/*.* # npx run build\""
   },
   "repository": {
     "type": "git",
@@ -41,7 +41,7 @@
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^7.1.1",
     "@types/jest": "^25.2.1",
-    "@types/node": "^13.11.0",
+    "@types/node": "^13.11.1",
     "@typescript-eslint/eslint-plugin": "^2.27.0",
     "@typescript-eslint/parser": "^2.27.0",
     "eslint": "^6.8.0",
