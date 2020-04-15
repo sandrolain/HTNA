@@ -1,1 +1,1 @@
-# SLOT: Light custom elements library
+# HTNA: Light custom elements library

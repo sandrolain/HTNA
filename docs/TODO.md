@@ -10,8 +10,3 @@
 - [x] export function to simple create elements : tagName + attributesMap
 - [ ] possibility to pass a different HTMLElement type class
 - [x] "observed" flag into attribute schema definition
-
-
-## Secondary
-- [ ] Create DOM structure from virtual DOM
-- [ ] Create CSS structure from virtual CSS
