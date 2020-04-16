@@ -17,11 +17,15 @@ export type SlotContent = HTMLElement | DocumentFragment | Text | string | numbe
 /** Interface of arguments for render() and controller() functions */
 export interface ControllerArguments {
   /** DOM Element Node for the current instance */
-  elementNode: DefinedHTMLElement;
-  /** Instance of *ShadowDOMAccess* for the ShadowDOM of current Element */
-  shadowDOMAccess: ShadowDOMAccess;
-  /** Map with the freezed status of attributes  */
-  attributesMap: AttributesMap;
+  element: DefinedHTMLElement;
+  /** Instance of *ShadowDOMAccess* for access the ShadowDOM of current Element */
+  shadow: ShadowDOMAccess;
+  /** Instance of *AttributesAccess* for access the attributes of current element with Schema */
+  attributes: AttributesAccess;
+  /** Instance of *SlotAccess* for access to the slots utilities  */
+  slot: SlotAccess;
+  /** Instance of *EventsAccess* for access to the events utilities  */
+  event: EventsAccess;
 }
 
 /**
@@ -73,6 +77,8 @@ export interface DefineConfig {
 
 /** Type of Attribute type specification */
 export type AttributeType = (value: string) => any;
+
+export type AttributesTypes = Record<string, AttributeType>;
 
 /** Interface for the Attributes Schema */
 export interface AttributesSchema {
@@ -152,45 +158,80 @@ export class ShadowDOMAccess {
   }
 }
 
-/**
- * Extended HTMLElement for user defined elements with define() function
- * @noInheritDoc
- */
-export interface DefinedHTMLElement extends HTMLElement {
-  new(): HTMLElement;
-  prototype: HTMLElement;
 
-  /**
-   * Permit to fire a custom event
-   * @param name Event name
-   * @param detail Optional detail for the event
-   * @param bubbles Flag to enable event bubbles the DOM tree (default: false)
-   */
-  fireEvent (name: string, detail?: any, bubbles?: boolean): boolean;
-
-  /**
-   * Return a Promise that resolves the first time the specified event is fired
-   * @param name The name of the event
-   */
-  when (name: string): Promise<Event>;
+// TODO: docs
+class AttributesAccess {
+  constructor (
+    private elementNode: HTMLElement,
+    private attributesSchema: AttributesTypes
+  ) {}
 
   /**
    * Returns the frozen state of the Element attributes
    */
-  getAttributesMap (): AttributesMap;
+  getMap (): AttributesMap {
+    const attributes = this.elementNode.attributes;
+    const attributesMap: AttributesMap = new Map();
+    for(let i = 0, len = attributes.length; i < len; i++) {
+      const attributeName = attributes[i].name;
+      attributesMap.set(attributeName, this.get(attributeName));
+    }
+    return attributesMap;
+  }
+
+  // TODO: docs
+  setMap (attributesMap: AttributesMap): void {
+    for(const [name, value] of attributesMap) {
+      this.set(name, value);
+    }
+  }
 
   /**
    * Return the element's attribute value with the correct type as defined into the attributes schema
    * @param name The name of the attribute
    */
-  getAttributeValue (name: string): any;
+  get (name: string): any {
+    let   value  = this.elementNode.getAttribute(name);
+    const schema = this.attributesSchema[name];
+    if(schema) {
+      const unserializer = AttributeTypesUnserialize.get(schema);
+      if(unserializer) {
+        value = unserializer(value, name);
+      } else {
+        value = schema(value);
+      }
+    }
+    return value;
+  }
 
   /**
    * Allows to set the value of an Element attribute according to what is provided by the attributes schema
    * @param name The name of the attribute
    * @param value The value of the attribute
    */
-  setAttributeValue (name: string, value: any): void;
+  set (name: string, value: any): void {
+    const schema = this.attributesSchema[name];
+    if(schema && AttributeTypesSerialize.has(schema)) {
+      const serializer = AttributeTypesSerialize.get(schema);
+      value = serializer(value);
+    }
+    this.elementNode.setAttribute(name, value.toString());
+  }
+
+  remove (name: string): void {
+    this.elementNode.removeAttribute(name);
+  }
+}
+
+
+// TODO: docs
+class SlotAccess {
+  constructor (private elementNode: HTMLElement) {}
+
+  // TODO: docs
+  get (slotName: string): HTMLElement {
+    return this.elementNode.querySelector<HTMLElement>(`*[slot="${slotName}"]`);
+  }
 
   /**
    * Append into the Element the content for the slot specified by its name
@@ -198,7 +239,18 @@ export interface DefinedHTMLElement extends HTMLElement {
    * @param node Content for the the slot as expected from *SlotContent*
    * @param tagName The tag name of the wrapper element for the slot content (default: "div")
    */
-  appendSlot (slotName: string, content: SlotContent, tagName?: string): HTMLElement;
+  append (slotName: string, node: SlotContent, tagName: string = "div"): HTMLElement {
+    const slotNode = document.createElement(tagName);
+    slotNode.setAttribute("slot", slotName);
+    if(["string", "number"].includes(typeof node)) {
+      node = document.createTextNode(node.toString());
+      slotNode.appendChild(node);
+    } else {
+      slotNode.appendChild(node as Node);
+    }
+    this.elementNode.appendChild(slotNode);
+    return slotNode;
+  }
 
   /**
    * Replace into the Element the content for the slot specified by its name
@@ -206,14 +258,65 @@ export interface DefinedHTMLElement extends HTMLElement {
    * @param node Content for the the slot as expected from *SlotContent*
    * @param tagName The tag name of the wrapper element for the slot content (default: "div")
    */
-  replaceSlot (slotName: string, content: SlotContent, tagName?: string): HTMLElement;
+  replace (slotName: string, node: SlotContent, tagName: string = "div"): HTMLElement {
+    this.remove(slotName);
+    return this.append(slotName, node, tagName);
+  }
 
   /**
    * Remove from the Element the content for the slot specified by its name
    * @param slotName The name of the slot
    */
-  removeSlot (slotName: string): HTMLElement;
+  remove (slotName: string): HTMLElement {
+    const slotNode = this.get(slotName);
+    if(slotNode) {
+      this.elementNode.removeChild(slotNode);
+    }
+    return slotNode;
+  }
+}
 
+class EventsAccess {
+  constructor (private elementNode: HTMLElement) {}
+
+  /**
+   * Permit to fire a custom event
+   * @param name Event name
+   * @param detail Optional detail for the event
+   * @param bubbles Flag to enable event bubbles the DOM tree (default: false)
+   */
+  fireEvent (name: string, detail?: any, bubbles: boolean = false): boolean {
+    const event = new CustomEvent(name, {
+      detail,
+      bubbles,
+      composed: true,
+      cancelable: true
+    });
+    return this.elementNode.dispatchEvent(event);
+  }
+
+  /**
+   * Return a Promise that resolves the first time the specified event is fired
+   * @param name The name of the event
+   */
+  when (name: string): Promise<Event> {
+    return new Promise((resolve) => {
+      const callback = (event: Event): void => {
+        this.elementNode.removeEventListener(name, callback);
+        resolve(event);
+      };
+      this.elementNode.addEventListener(name, callback);
+    });
+  }
+}
+
+/**
+ * Extended HTMLElement for user defined elements with define() function
+ * @noInheritDoc
+ */
+export interface DefinedHTMLElement extends HTMLElement {
+  new(): HTMLElement;
+  prototype: HTMLElement;
   /** Other properties of the node for accessing the values of the attributes in accordance with the *AttributesSchema* */
   [key: string]: any;
 }
@@ -228,7 +331,7 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
     throw new Error(`"${elementName}" element already defined`);
   }
 
-  const attributesSchema: Record<string, AttributeType> = {};
+  const attributesSchema: AttributesTypes = {};
   const observedAttributes: string[] = [];
   const propertyAttributes: string[] = [];
 
@@ -256,8 +359,8 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
     }
 
     #shadow: ShadowRoot;
-    #shadowDOMAccess: ShadowDOMAccess;
     #controllerResult: ControllerResult = {};
+    #controllerArguments: ControllerArguments;
 
     constructor () {
       super();
@@ -266,30 +369,27 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
         mode: config.mode || "closed"
       });
 
-      if(config.attributes) {
-        this.setAttributesMap(config.attributes);
-      }
+      this.#controllerArguments = Object.freeze({
+        element: this as unknown as DefinedHTMLElement,
+        shadow: new ShadowDOMAccess(this.#shadow),
+        attributes: new AttributesAccess(this, attributesSchema),
+        slot: new SlotAccess(this),
+        event: new EventsAccess(this)
+      });
+
+      const attributesAccess = this.#controllerArguments.attributes;
 
       // Add getter / setter for properties
       for(const attributeName of propertyAttributes) {
         const propertyName = camelCase(attributeName);
         Object.defineProperty(this, propertyName, {
-          get: () => this.getAttributeValue(attributeName),
-          set: (value: any) => this.setAttributeValue(attributeName, value)
+          get: () => attributesAccess.get(attributeName),
+          set: (value: any) => attributesAccess.set(attributeName, value)
         });
       }
 
-      this.#shadowDOMAccess = new ShadowDOMAccess(this.#shadow);
-
-      const controllerArguments: ControllerArguments = {
-        elementNode: this as unknown as DefinedHTMLElement,
-        shadowDOMAccess: this.#shadowDOMAccess,
-        attributesMap: this.getAttributesMap()
-      };
-
       if(config.render) {
-        const renderResult = config.render(controllerArguments);
-
+        const renderResult = config.render(this.#controllerArguments);
         if(typeof renderResult === "string") {
           this.#shadow.innerHTML = renderResult;
         } else if(renderResult instanceof HTMLTemplateElement) {
@@ -311,7 +411,7 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
       }
 
       if(config.controller) {
-        this.#controllerResult = config.controller(controllerArguments) || {};
+        this.#controllerResult = config.controller(this.#controllerArguments) || {};
       }
     }
 
@@ -321,7 +421,6 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
           this.addEventListener(name, this.#controllerResult.listeners[name]);
         }
       }
-
       if(this.#controllerResult.connectedCallback) {
         this.#controllerResult.connectedCallback();
       }
@@ -333,7 +432,6 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
           this.removeEventListener(name, this.#controllerResult.listeners[name]);
         }
       }
-
       if(this.#controllerResult.disconnectedCallback) {
         this.#controllerResult.disconnectedCallback();
       }
@@ -351,90 +449,6 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
       }
     }
 
-    fireEvent (name: string, detail?: any, bubbles: boolean = false): boolean {
-      const event = new CustomEvent(name, {
-        detail,
-        bubbles,
-        composed: true,
-        cancelable: true
-      });
-      return this.dispatchEvent(event);
-    }
-
-    when (name: string): Promise<Event> {
-      return new Promise((resolve) => {
-        const callback = (event: Event): void => {
-          this.removeEventListener(name, callback);
-          resolve(event);
-        };
-        this.addEventListener(name, callback);
-      });
-    }
-
-    getAttributesMap (): AttributesMap {
-      const attributes = this.attributes;
-      const attributesMap: AttributesMap = new Map();
-      for(let i = 0, len = attributes.length; i < len; i++) {
-        const attributeName = attributes[i].name;
-        attributesMap.set(attributeName, this.getAttributeValue(attributeName));
-      }
-      return attributesMap;
-    }
-
-    setAttributesMap (attributesMap: AttributesMap): void {
-      for(const [name, value] of attributesMap) {
-        this.setAttributeValue(name, value);
-      }
-    }
-
-    getAttributeValue (name: string): any {
-      let   value  = this.getAttribute(name);
-      const schema = attributesSchema[name];
-      if(schema) {
-        const unserializer = AttributeTypesUnserialize.get(schema);
-        if(unserializer) {
-          value = unserializer(value, name);
-        } else {
-          value = schema(value);
-        }
-      }
-      return value;
-    }
-
-    setAttributeValue (name: string, value: any): void {
-      const schema = attributesSchema[name];
-      if(schema && AttributeTypesSerialize.has(schema)) {
-        const serializer = AttributeTypesSerialize.get(schema);
-        value = serializer(value);
-      }
-      this.setAttribute(name, value.toString());
-    }
-
-    appendSlot (slotName: string, node: SlotContent, tagName: string = "div"): HTMLElement {
-      const slotNode = document.createElement(tagName);
-      slotNode.setAttribute("slot", slotName);
-      if(["string", "number"].includes(typeof node)) {
-        node = document.createTextNode(node.toString());
-        slotNode.appendChild(node);
-      } else {
-        slotNode.appendChild(node as Node);
-      }
-      this.appendChild(slotNode);
-      return slotNode;
-    }
-
-    replaceSlot (slotName: string, node: SlotContent, tagName: string = "div"): HTMLElement {
-      this.removeSlot(slotName);
-      return this.appendSlot(slotName, node, tagName);
-    }
-
-    removeSlot (slotName: string): HTMLElement {
-      const slotNode = this.querySelector<HTMLElement>(`*[slot="${slotName}"]`);
-      if(slotNode) {
-        this.removeChild(slotNode);
-      }
-      return slotNode;
-    }
   } as unknown as DefinedHTMLElement;
 
   const elementOptions: ElementDefinitionOptions = {};
