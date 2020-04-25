@@ -18,8 +18,10 @@ export type SlotContent = HTMLElement | DocumentFragment | Text | string | numbe
 export interface ControllerArguments {
   /** DOM Element Node for the current instance */
   element: DefinedHTMLElement;
-  /** Instance of *ShadowDOMAccess* for access the ShadowDOM of current Element */
-  shadow: ShadowDOMAccess;
+  /** Instance of *DOMAccess* for access the LightDOM of current Element */
+  light: DOMAccess;
+  /** Instance of *DOMAccess* for access the ShadowDOM of current Element */
+  shadow: DOMAccess;
   /** Instance of *AttributesAccess* for access the attributes of current element with Schema */
   attributes: AttributesAccess;
   /** Instance of *SlotAccess* for access to the slots utilities  */
@@ -34,10 +36,16 @@ export interface ControllerArguments {
 export type BaseCallback = () => void;
 
 /**
- * Attribute change callback callback for ControllerResult
+ * Attribute change callback for ControllerResult
  * @param name The name of the changed attribute
  */
 export type AttributeChangedCallback = (name: string, oldValue: string, newValue: string) => void
+
+/** Attribute change Name-Callback dictionary for ControllerResult */
+export type AttributeChangesCallbackRecord = Record<string, AttributeChangedCallback>;
+
+/** Properties Name-Descriptor dictionary for ControllerResult */
+export type PropertiesDescriptorsRecord = Record<string, PropertyDescriptor>;
 
 /** Interface of expected result from controller() function invocation */
 export interface ControllerResult {
@@ -48,9 +56,11 @@ export interface ControllerResult {
   /** Executed at native custom element adoptedCallback() */
   adoptedCallback?: BaseCallback;
   /** Executed at native custom element attributeChangedCallback() */
-  attributeChangedCallback?: AttributeChangedCallback;
+  attributeChangedCallback?: AttributeChangedCallback | AttributeChangesCallbackRecord;
   /** Record of event listeners to add to the Element */
   listeners?: Record<string, EventListenerOrEventListenerObject>;
+  /** Record of descriptors to define getters and setters of DOM node properties */
+  properties?: PropertiesDescriptorsRecord;
 }
 
 /** Type of rendering function used to generate the custom element HTML content */
@@ -95,8 +105,10 @@ export interface AttributesSchema {
   };
 }
 
-// TODO: docs
-export const AttributeTypes: {[key: string]: AttributeType} = {
+/**
+ * Dictionary with the list of supported types as element attribute values
+ */
+export const AttributeTypes: Record<string, AttributeType> = {
   JSON: (value: string): any => JSON.parse(value),
   Boolean: Boolean,
   String: String,
@@ -132,34 +144,33 @@ AttributeTypesUnserialize.set(Boolean, function (value: string, name: string): b
 });
 
 /**
- * Enable access to ShadowDOM nodes
+ * Enable access to Element or ShadowDOM nodes
  */
-export class ShadowDOMAccess {
-  #shadow: ShadowRoot;
+export class DOMAccess {
 
-  constructor (shadow: ShadowRoot) {
-    this.#shadow = shadow;
-  }
+  constructor (private node: ShadowRoot | HTMLElement) {}
 
   /**
-   * Alias for querySelector inside Element's ShadowDOM
+   * Alias for querySelector inside Element or ShadowDOM
    * @param selector CSS Selector
    */
   $<T=HTMLElement> (selector: string): T {
-    return this.#shadow.querySelector(selector) as unknown as T;
+    return this.node.querySelector(selector) as unknown as T;
   }
 
   /**
-   * Alias for querySelectorAll inside Element's ShadowDOM
+   * Alias for querySelectorAll inside Element or ShadowDOM
    * @param selector CSS Selector
    */
   $$<T=HTMLElement> (selector: string): T[] {
-    return Array.from(this.#shadow.querySelectorAll(selector)) as unknown as T[];
+    return Array.from(this.node.querySelectorAll(selector)) as unknown as T[];
   }
 }
 
 
-// TODO: docs
+/**
+ * Allows access and management of element attributes
+ */
 class AttributesAccess {
   constructor (
     private elementNode: HTMLElement,
@@ -179,7 +190,10 @@ class AttributesAccess {
     return attributesMap;
   }
 
-  // TODO: docs
+  /**
+   * Allows you to set the attributes of the element through a Map instance
+   * @param attributesMap The Map of attributes
+   */
   setMap (attributesMap: AttributesMap): void {
     for(const [name, value] of attributesMap) {
       this.set(name, value);
@@ -224,11 +238,16 @@ class AttributesAccess {
 }
 
 
-// TODO: docs
+/**
+ * Allows access and management of slot content
+ */
 class SlotAccess {
   constructor (private elementNode: HTMLElement) {}
 
-  // TODO: docs
+  /**
+   * Returns the Light DOM node of the indicated slot
+   * @param slotName The name of the slot
+   */
   get (slotName: string): HTMLElement {
     return this.elementNode.querySelector<HTMLElement>(`*[slot="${slotName}"]`);
   }
@@ -285,7 +304,7 @@ class EventsAccess {
    * @param detail Optional detail for the event
    * @param bubbles Flag to enable event bubbles the DOM tree (default: false)
    */
-  fireEvent (name: string, detail?: any, bubbles: boolean = false): boolean {
+  fire (name: string, detail?: any, bubbles: boolean = false): boolean {
     const event = new CustomEvent(name, {
       detail,
       bubbles,
@@ -371,7 +390,8 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
 
       this.#controllerArguments = Object.freeze({
         element: this as unknown as DefinedHTMLElement,
-        shadow: new ShadowDOMAccess(this.#shadow),
+        shadow: new DOMAccess(this.#shadow),
+        light: new DOMAccess(this as HTMLElement),
         attributes: new AttributesAccess(this, attributesSchema),
         slot: new SlotAccess(this),
         event: new EventsAccess(this)
@@ -412,6 +432,16 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
 
       if(config.controller) {
         this.#controllerResult = config.controller(this.#controllerArguments) || {};
+
+        if(this.#controllerResult.properties) {
+          this.defineProperties(this.#controllerResult.properties);
+        }
+      }
+    }
+
+    private defineProperties (properties: PropertiesDescriptorsRecord): void {
+      for(const name in properties) {
+        Object.defineProperty(this, name, properties[name]);
       }
     }
 
@@ -445,7 +475,11 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
 
     attributeChangedCallback (name: string, oldValue: any, newValue: any): void {
       if(this.#controllerResult.attributeChangedCallback) {
-        this.#controllerResult.attributeChangedCallback(name, oldValue, newValue);
+        if(typeof this.#controllerResult.attributeChangedCallback === "function") {
+          this.#controllerResult.attributeChangedCallback(name, oldValue, newValue);
+        } else if(this.#controllerResult.attributeChangedCallback[name]) {
+          this.#controllerResult.attributeChangedCallback[name](name, oldValue, newValue);
+        }
       }
     }
 
