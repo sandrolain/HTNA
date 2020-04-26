@@ -26,8 +26,6 @@ export interface ControllerArguments {
   attributes: AttributesAccess;
   /** Instance of *SlotAccess* for access to the slots utilities  */
   slot: SlotAccess;
-  /** Instance of *EventsAccess* for access to the events utilities  */
-  event: EventsAccess;
 }
 
 /**
@@ -143,6 +141,7 @@ AttributeTypesUnserialize.set(Boolean, function (value: string, name: string): b
   return Boolean(value);
 });
 
+
 /**
  * Enable access to Element or ShadowDOM nodes
  */
@@ -164,6 +163,53 @@ export class DOMAccess {
    */
   $$<T=HTMLElement> (selector: string): T[] {
     return Array.from(this.node.querySelectorAll(selector)) as unknown as T[];
+  }
+
+  // TODO: docs
+  on (source: HTMLElement | string, type: string, listener: (event: Event) => void, options?: AddEventListenerOptions): void {
+    const node: HTMLElement = (typeof source === "string") ? this.node.querySelector(source) : source;
+    node.addEventListener(type, listener, options);
+  }
+
+  // TODO: docs
+  delegate (source: HTMLElement | string, type: string, target: string, listener: (event: Event) => void, options?: AddEventListenerOptions): void {
+    const node: HTMLElement = (typeof source === "string") ? this.node.querySelector(source) : source;
+    node.addEventListener(type, (event: Event) => {
+      const eventTarget = event.target as HTMLElement;
+      if(eventTarget && eventTarget.matches(target)) {
+        listener.call(eventTarget, event);
+      }
+    }, options);
+  }
+
+  /**
+   * Permit to fire a custom event
+   * @param name Event name
+   * @param detail Optional detail for the event
+   * @param bubbles Flag to enable event bubbles the DOM tree (default: false)
+   */
+  fire (name: string, detail?: any, bubbles: boolean = false): boolean {
+    const event = new CustomEvent(name, {
+      detail,
+      bubbles,
+      composed: true,
+      cancelable: true
+    });
+    return this.node.dispatchEvent(event);
+  }
+
+  /**
+   * Return a Promise that resolves the first time the specified event is fired
+   * @param name The name of the event
+   */
+  when (name: string): Promise<Event> {
+    return new Promise((resolve) => {
+      const callback = (event: Event): void => {
+        this.node.removeEventListener(name, callback);
+        resolve(event);
+      };
+      this.node.addEventListener(name, callback);
+    });
   }
 }
 
@@ -295,39 +341,6 @@ class SlotAccess {
   }
 }
 
-class EventsAccess {
-  constructor (private elementNode: HTMLElement) {}
-
-  /**
-   * Permit to fire a custom event
-   * @param name Event name
-   * @param detail Optional detail for the event
-   * @param bubbles Flag to enable event bubbles the DOM tree (default: false)
-   */
-  fire (name: string, detail?: any, bubbles: boolean = false): boolean {
-    const event = new CustomEvent(name, {
-      detail,
-      bubbles,
-      composed: true,
-      cancelable: true
-    });
-    return this.elementNode.dispatchEvent(event);
-  }
-
-  /**
-   * Return a Promise that resolves the first time the specified event is fired
-   * @param name The name of the event
-   */
-  when (name: string): Promise<Event> {
-    return new Promise((resolve) => {
-      const callback = (event: Event): void => {
-        this.elementNode.removeEventListener(name, callback);
-        resolve(event);
-      };
-      this.elementNode.addEventListener(name, callback);
-    });
-  }
-}
 
 /**
  * Extended HTMLElement for user defined elements with define() function
@@ -393,8 +406,7 @@ export function define (elementName: string, config: DefineConfig): DefinedHTMLE
         shadow: new DOMAccess(this.#shadow),
         light: new DOMAccess(this as HTMLElement),
         attributes: new AttributesAccess(this, attributesSchema),
-        slot: new SlotAccess(this),
-        event: new EventsAccess(this)
+        slot: new SlotAccess(this)
       });
 
       const attributesAccess = this.#controllerArguments.attributes;
