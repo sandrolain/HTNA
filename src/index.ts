@@ -132,7 +132,7 @@ AttributeTypesSerialize.set(AttributeTypes.JSON, function (value: any): string {
 export const AttributeTypesUnserialize: Map<AttributeType, (value: string, name: string) => any> = new Map();
 
 AttributeTypesUnserialize.set(Boolean, function (value: string, name: string): boolean {
-  if(value === name) {
+  if(value === name || value === "true" || value === "on") {
     return true;
   }
   if(value === "false" || value === "off" || value === "") {
@@ -183,12 +183,12 @@ export class DOMAccess {
   }
 
   /**
-   * Permit to fire a custom event
+   * Permit to dispatch a custom event
    * @param name Event name
    * @param detail Optional detail for the event
    * @param bubbles Flag to enable event bubbles the DOM tree (default: false)
    */
-  fire (name: string, detail?: any, bubbles: boolean = false): boolean {
+  dispatch (name: string, detail?: any, bubbles: boolean = false): boolean {
     const event = new CustomEvent(name, {
       detail,
       bubbles,
