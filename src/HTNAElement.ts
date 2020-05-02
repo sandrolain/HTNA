@@ -92,8 +92,7 @@ export interface DefinedHTMLElement extends HTNAElement {
 }
 
 
-const definedObservedAttributes: Map<typeof HTNAElement, string[]> = new Map();
-
+const definedObservedAttributes: WeakMap<typeof HTNAElement, string[]> = new WeakMap();
 
 export class HTNAElement extends HTMLElement {
   static get observedAttributes (): string[] {
