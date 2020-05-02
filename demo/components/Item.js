@@ -4,7 +4,8 @@ export const Item = define("demo-item", {
   attributesSchema: {
     selected: {
       type: Boolean,
-      observed: true
+      observed: true,
+      value: false
     }
   },
   style: /*css*/`

@@ -25,11 +25,3 @@ window.addEventListener("update:request", (e) => {
     model.add(e.detail[1]);
   }
 });
-
-console.log(App);
-console.log(List);
-console.log(Item);
-console.log(Detail);
-
-
-
