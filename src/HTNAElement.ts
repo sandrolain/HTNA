@@ -103,12 +103,13 @@ export class HTNAElement extends HTMLElement {
   #shadow: ShadowRoot;
   #controllerResult: ControllerResult = {};
   #controllerArguments: ControllerArguments;
+  #defaultAttributes: Map<string, any> = new Map();
+  #initied: boolean = false;
 
   constructor (private config: DefineConfig) {
     super();
 
     const attributesSchema: AttributesTypes   = {};
-    const defaultAttributes: Map<string, any> = new Map();
     const observedAttributes: string[] = [];
     const propertyAttributes: string[] = [];
 
@@ -125,7 +126,7 @@ export class HTNAElement extends HTMLElement {
           observedAttributes.push(name);
         }
         if(attribute.value !== undefined) {
-          defaultAttributes.set(name, attribute.value);
+          this.#defaultAttributes.set(name, attribute.value);
         }
       }
     }
@@ -149,11 +150,6 @@ export class HTNAElement extends HTMLElement {
     });
 
     const attributesAccess = this.#controllerArguments.attributes;
-
-    // Set the initial attributes values
-    defaultAttributes.forEach((value: any, name: string) => {
-      attributesAccess.set(name, value);
-    });
 
     // Add getter / setter for properties
     for(const attributeName of propertyAttributes) {
@@ -185,14 +181,6 @@ export class HTNAElement extends HTMLElement {
       styleNode.innerHTML = config.style;
       this.#shadow.appendChild(styleNode);
     }
-
-    if(config.controller) {
-      this.#controllerResult = config.controller(this.#controllerArguments) || {};
-
-      if(this.#controllerResult.properties) {
-        this.defineProperties(this.#controllerResult.properties);
-      }
-    }
   }
 
   private defineProperties (properties: PropertiesDescriptorsRecord): void {
@@ -202,6 +190,26 @@ export class HTNAElement extends HTMLElement {
   }
 
   connectedCallback (): void {
+
+    if(!this.#initied) {
+      this.#initied = true;
+      const attributesAccess = this.#controllerArguments.attributes;
+      // Set the initial attributes values
+      this.#defaultAttributes.forEach((value: any, name: string) => {
+        if(!attributesAccess.has(name)) {
+          attributesAccess.set(name, value);
+        }
+      });
+
+      if(this.config.controller) {
+        this.#controllerResult = this.config.controller(this.#controllerArguments) || {};
+
+        if(this.#controllerResult.properties) {
+          this.defineProperties(this.#controllerResult.properties);
+        }
+      }
+    }
+
     if(this.#controllerResult.listeners) {
       for(const name in this.#controllerResult.listeners) {
         this.addEventListener(name, this.#controllerResult.listeners[name]);

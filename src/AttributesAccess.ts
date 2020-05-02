@@ -101,6 +101,14 @@ export class AttributesAccess {
   }
 
   /**
+   * Checks whether the element's attribute has already been defined
+   * @param name The name of the attribute
+   */
+  has (name: string): boolean {
+    return this.elementNode.hasAttribute(name);
+  }
+
+  /**
    * Return the element's attribute value with the correct type as defined into the attributes schema
    * @param name The name of the attribute
    */

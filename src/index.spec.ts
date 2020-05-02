@@ -102,6 +102,7 @@ describe("define()", () => {
     });
 
     const el = document.createElement("test-property") as DefinedHTMLElement;
+    document.body.appendChild(el);
     el.setAttribute("foo", "bar");
     expect(el.foo).toStrictEqual("bar");
 
@@ -120,6 +121,7 @@ describe("define()", () => {
     });
 
     const el = document.createElement("test-property-cc") as DefinedHTMLElement;
+    document.body.appendChild(el);
     el.setAttribute("foo-bar", "bar");
     expect(el.fooBar).toStrictEqual("bar");
 
@@ -147,6 +149,7 @@ describe("define()", () => {
     });
 
     const el = document.createElement("test-property-atc");
+    document.body.appendChild(el);
     el.setAttribute("foo-bar", "bar");
   });
 
@@ -172,6 +175,7 @@ describe("define()", () => {
     });
 
     const el = document.createElement("test-property-atcs");
+    document.body.appendChild(el);
     el.setAttribute("foo-bar", "bar");
   });
 
