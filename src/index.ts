@@ -34,18 +34,24 @@ export class Registry {
 }
 
 /**
+ * The *create()* function provides a simple method to create a new type of Custom Element
+ * @param config
+ */
+export function create (config: DefineConfig): DefinedHTMLElement {
+  return class extends HTNAElement {
+    constructor () {
+      super(config);
+    }
+  } as unknown as DefinedHTMLElement;
+}
+
+/**
  * The *define()* function provides a simple method to create a new type of Custom Element and to define it globally
  * @param elementName The tag name of the new Custom Element
  * @param config The configuration, render, controller and callback used by the new Custom Element
  */
 export function define (elementName: string, config: DefineConfig): DefinedHTMLElement {
-  const ElementClass = class extends HTNAElement {
-    constructor () {
-      super(config);
-    }
-  } as unknown as DefinedHTMLElement;
-
-  Registry.add(elementName, ElementClass);
-
-  return ElementClass;
+  const CustomElementClass = create(config);
+  Registry.add(elementName, CustomElementClass);
+  return CustomElementClass;
 }
