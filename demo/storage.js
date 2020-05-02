@@ -43,7 +43,7 @@ export class Storage {
 
   replace(oldItem, item) {
     var index = this.data.indexOf(oldItem);
-    if(index > 0) {
+    if(index > -1) {
       this.data.splice(index, 1, item);
     } else {
       this.data.push(item);
