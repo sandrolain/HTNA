@@ -1,7 +1,7 @@
 
 import { define, DefinedHTMLElement } from "./index";
 
-describe("define", () => {
+describe("define()", () => {
 
   const externalStyles = `
     div {
@@ -19,7 +19,7 @@ describe("define", () => {
     });
   });
 
-  test("Define a element with HTML render", async () => {
+  test("define() a element with HTML render", async () => {
     define("test-html", {
       render: () => "<b>html test</b>"
     });
@@ -38,7 +38,7 @@ describe("define", () => {
     expect(b.innerText).toStrictEqual("html test");
   });
 
-  test("Define an element with DOM render", async () => {
+  test("define() an element with DOM render", async () => {
     define("test-dom", {
       render: () => {
         const $div = document.createElement("div");
@@ -73,7 +73,7 @@ describe("define", () => {
     throw new Error("This should not pass!");
   });
 
-  test("Define element style", async () => {
+  test("define() element style", async () => {
     const styles = `
       em {
         color: #FF0000;
@@ -91,7 +91,7 @@ describe("define", () => {
     expect(style.innerHTML).toStrictEqual(styles);
   });
 
-  test("Define attributes as property", async () => {
+  test("define() attributes as property", async () => {
     define("test-property", {
       render: () => "<em>html test</em>",
       attributesSchema: {
@@ -109,7 +109,7 @@ describe("define", () => {
     expect(el.getAttribute("foo")).toStrictEqual("test");
   });
 
-  test("Define attributes as property with camelCase translation", async () => {
+  test("define() attributes as property with camelCase translation", async () => {
     define("test-property-cc", {
       render: () => "<em>html test</em>",
       attributesSchema: {
@@ -127,4 +127,54 @@ describe("define", () => {
     expect(el.getAttribute("foo-bar")).toStrictEqual("test");
   });
 
+  test("define() generic attributeChangedCallback", (done) => {
+    define("test-property-atc", {
+      render: () => "<em>html test</em>",
+      attributesSchema: {
+        "foo-bar": {
+          observed: true,
+          value: "foo"
+        }
+      },
+      controller: () => ({
+        attributeChangedCallback: (name: string, oldValue: string, newValue: string): void => {
+          expect(name).toEqual("foo-bar");
+          expect(oldValue).toEqual("foo");
+          expect(newValue).toEqual("bar");
+          done();
+        }
+      })
+    });
+
+    const el = document.createElement("test-property-atc");
+    el.setAttribute("foo-bar", "bar");
+  });
+
+  test("define() specific attributeChangedCallback", (done) => {
+    define("test-property-atcs", {
+      render: () => "<em>html test</em>",
+      attributesSchema: {
+        "foo-bar": {
+          observed: true,
+          value: "foo"
+        }
+      },
+      controller: () => ({
+        attributeChangedCallback: {
+          "foo-bar": (name: string, oldValue: string, newValue: string): void => {
+            expect(name).toEqual("foo-bar");
+            expect(oldValue).toEqual("foo");
+            expect(newValue).toEqual("bar");
+            done();
+          }
+        }
+      })
+    });
+
+    const el = document.createElement("test-property-atcs");
+    el.setAttribute("foo-bar", "bar");
+  });
+
 });
+
+
