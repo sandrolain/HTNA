@@ -1,4 +1,4 @@
-import { HTNAElement } from "./HTNAElement";
+import { HTNAElement, DefineConfig } from "./HTNAElement";
 import { Registry } from ".";
 
 describe("HTNAElement", () => {
@@ -21,11 +21,9 @@ describe("HTNAElement", () => {
 
   test("define() a element with HTML render", async () => {
     class TestClassHtml extends HTNAElement {
-      constructor () {
-        super({
-          render: () => "<b>html test</b>"
-        });
-      }
+      static config: DefineConfig = {
+        render: () => "<b>html test</b>"
+      };
     }
 
     Registry.add("test-class-html", TestClassHtml);

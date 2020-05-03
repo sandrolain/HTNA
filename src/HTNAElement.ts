@@ -91,12 +91,23 @@ export interface DefinedHTMLElement extends HTNAElement {
   [key: string]: any;
 }
 
-
-const definedObservedAttributes: WeakMap<typeof HTNAElement, string[]> = new WeakMap();
-
 export class HTNAElement extends HTMLElement {
+  static config: DefineConfig;
+
+  private static observedAttributesArray: string[];
+
   static get observedAttributes (): string[] {
-    return definedObservedAttributes.get(this) || [];
+    if(!this.observedAttributesArray) {
+      this.observedAttributesArray = [];
+      if(this.config.attributesSchema) {
+        for(const name in this.config.attributesSchema) {
+          if(this.config.attributesSchema[name].observed) {
+            this.observedAttributesArray.push(name);
+          }
+        }
+      }
+    }
+    return this.observedAttributesArray;
   }
 
   #shadow: ShadowRoot;
@@ -105,11 +116,13 @@ export class HTNAElement extends HTMLElement {
   #defaultAttributes: Map<string, any> = new Map();
   #initied: boolean = false;
 
-  constructor (private config: DefineConfig) {
+  constructor () {
     super();
 
+    const constructor = this.constructor as typeof HTNAElement;
+    const config      = constructor.config;
+
     const attributesSchema: AttributesTypes   = {};
-    const observedAttributes: string[] = [];
     const propertyAttributes: string[] = [];
 
     if(config.attributesSchema) {
@@ -121,19 +134,10 @@ export class HTNAElement extends HTMLElement {
         if(attribute.property) {
           propertyAttributes.push(name);
         }
-        if(attribute.observed) {
-          observedAttributes.push(name);
-        }
         if(attribute.value !== undefined) {
           this.#defaultAttributes.set(name, attribute.value);
         }
       }
-    }
-
-    const constructor = this.constructor as typeof HTNAElement;
-
-    if(!definedObservedAttributes.has(constructor)) {
-      definedObservedAttributes.set(constructor, observedAttributes);
     }
 
     this.#shadow = this.attachShadow({
@@ -192,6 +196,9 @@ export class HTNAElement extends HTMLElement {
 
     if(!this.#initied) {
       this.#initied = true;
+      const constructor = this.constructor as typeof HTNAElement;
+      const config      = constructor.config;
+
       const attributesAccess = this.#controllerArguments.attributes;
       // Set the initial attributes values
       this.#defaultAttributes.forEach((value: any, name: string) => {
@@ -200,13 +207,14 @@ export class HTNAElement extends HTMLElement {
         }
       });
 
-      if(this.config.controller) {
-        this.#controllerResult = this.config.controller(this.#controllerArguments) || {};
+      if(config.controller) {
+        this.#controllerResult = config.controller(this.#controllerArguments) || {};
 
         if(this.#controllerResult.properties) {
           this.defineProperties(this.#controllerResult.properties);
         }
       }
+      window.customElements.upgrade(this);
     }
 
     if(this.#controllerResult.listeners) {

@@ -39,9 +39,7 @@ export class Registry {
  */
 export function create (config: DefineConfig): DefinedHTMLElement {
   return class extends HTNAElement {
-    constructor () {
-      super(config);
-    }
+    static config = config;
   } as unknown as DefinedHTMLElement;
 }
 
