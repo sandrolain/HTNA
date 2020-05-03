@@ -33,7 +33,12 @@ export interface AttributesSchema {
  * Dictionary with the list of supported types as element attribute values
  */
 export const AttributeTypes: Record<string, AttributeType> = {
+  // TODO: test
   JSON: (value: string): any => JSON.parse(value),
+  // TODO: test
+  CSVString: (value: string): string[] => value.split(","),
+  // TODO: test
+  CSVNumber: (value: string): number[] => value.split(",").map((str) => Number(str)),
   Boolean: Boolean,
   String: String,
   Number: Number
@@ -46,8 +51,19 @@ export const AttributeTypes: Record<string, AttributeType> = {
  */
 export const AttributeTypesSerialize: Map<AttributeType, (value: any) => string> = new Map();
 
+// TODO: test
 AttributeTypesSerialize.set(AttributeTypes.JSON, function (value: any): string {
   return JSON.stringify(value);
+});
+
+// TODO: test
+AttributeTypesSerialize.set(AttributeTypes.CSVString, function (value: string[]): string {
+  return value.join(",");
+});
+
+// TODO: test
+AttributeTypesSerialize.set(AttributeTypes.CSVNumber, function (value: number[]): string {
+  return value.map((num) => String(num)).join(",");
 });
 
 /**
