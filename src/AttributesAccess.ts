@@ -29,6 +29,25 @@ export interface AttributesSchema {
   };
 }
 
+
+let richDataCounter: number = 0;
+const generateRichDataId = (): string => {
+  return `htna-val-${++richDataCounter}`;
+};
+const isRichDataId = (value: string): boolean => {
+  return value && !!value.match(/^htna-val-[0-9]+$/);
+};
+const richDataStorage: Map<string, any> = new Map();
+
+// TODO: docs
+export class AttributesRichData {
+  // TODO: docs
+  static get (key: string): string {
+    return richDataStorage.get(key);
+  }
+}
+
+
 /**
  * Dictionary with the list of supported types as element attribute values
  */
@@ -39,17 +58,23 @@ export const AttributeTypes: Record<string, AttributeType> = {
   CSVString: (value: string): string[] => value.split(","),
   // TODO: test
   CSVNumber: (value: string): number[] => value.split(",").map((str) => Number(str)),
+  // TODO: test
+  RichData: (value: string): any => {
+    return richDataStorage.get(value);
+  },
   Boolean: Boolean,
   String: String,
   Number: Number
 };
+
+
 
 /**
  * Map for the available attributes value serializer.<br/>
  * Map's items key must be the *AttributeType* class for the data type<br/>
  * Map's items value can be a serializer function that accept attribute value and return the serialized data as string
  */
-export const AttributeTypesSerialize: Map<AttributeType, (value: any) => string> = new Map();
+export const AttributeTypesSerialize: Map<AttributeType, (value: any, oldValue: string, name: string) => string> = new Map();
 
 // TODO: test
 AttributeTypesSerialize.set(AttributeTypes.JSON, function (value: any): string {
@@ -64,6 +89,13 @@ AttributeTypesSerialize.set(AttributeTypes.CSVString, function (value: string[])
 // TODO: test
 AttributeTypesSerialize.set(AttributeTypes.CSVNumber, function (value: number[]): string {
   return value.map((num) => String(num)).join(",");
+});
+
+// TODO: test
+AttributeTypesSerialize.set(AttributeTypes.RichData, function (value: any, oldValue: string): string {
+  const richDataId = isRichDataId(oldValue) ? oldValue : generateRichDataId();
+  richDataStorage.set(richDataId, value);
+  return richDataId;
 });
 
 /**
@@ -129,14 +161,15 @@ export class AttributesAccess {
    * @param name The name of the attribute
    */
   get (name: string): any {
-    let   value  = this.elementNode.getAttribute(name);
-    const schema = this.attributesSchema[name];
-    if(schema) {
-      const unserializer = AttributeTypesUnserialize.get(schema);
-      if(unserializer) {
-        value = unserializer(value, name);
-      } else {
-        value = schema(value);
+    const value  = this.elementNode.getAttribute(name);
+    if(value !== null) {
+      const schema = this.attributesSchema[name];
+      if(schema) {
+        const unserializer = AttributeTypesUnserialize.get(schema);
+        if(unserializer) {
+          return unserializer(value, name);
+        }
+        return schema(value);
       }
     }
     return value;
@@ -151,7 +184,8 @@ export class AttributesAccess {
     const schema = this.attributesSchema[name];
     if(schema && AttributeTypesSerialize.has(schema)) {
       const serializer = AttributeTypesSerialize.get(schema);
-      value = serializer(value);
+      const oldValue = this.get(name);
+      value = serializer(value, oldValue, name);
     }
     this.elementNode.setAttribute(name, value.toString());
   }
