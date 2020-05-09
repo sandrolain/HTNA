@@ -32,10 +32,10 @@ export interface AttributesSchema {
 
 let richDataCounter: number = 0;
 const generateRichDataId = (): string => {
-  return `htna-val-${++richDataCounter}`;
+  return `$htna${++richDataCounter}$`;
 };
 const isRichDataId = (value: string): boolean => {
-  return value && !!value.match(/^htna-val-[0-9]+$/);
+  return value && !!value.match(/^\$htna[0-9]+\$$/);
 };
 const richDataStorage: Map<string, any> = new Map();
 
@@ -92,8 +92,8 @@ AttributeTypesSerialize.set(AttributeTypes.CSVNumber, function (value: number[])
 });
 
 // TODO: test
-AttributeTypesSerialize.set(AttributeTypes.RichData, function (value: any, oldValue: string): string {
-  const richDataId = isRichDataId(oldValue) ? oldValue : generateRichDataId();
+AttributeTypesSerialize.set(AttributeTypes.RichData, function (value: any, oldRawValue: string): string {
+  const richDataId = isRichDataId(oldRawValue) ? oldRawValue : generateRichDataId();
   richDataStorage.set(richDataId, value);
   return richDataId;
 });
@@ -184,7 +184,7 @@ export class AttributesAccess {
     const schema = this.attributesSchema[name];
     if(schema && AttributeTypesSerialize.has(schema)) {
       const serializer = AttributeTypesSerialize.get(schema);
-      const oldValue = this.get(name);
+      const oldValue   = this.elementNode.getAttribute(name);
       value = serializer(value, oldValue, name);
     }
     this.elementNode.setAttribute(name, value.toString());
