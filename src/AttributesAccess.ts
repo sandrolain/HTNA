@@ -64,6 +64,9 @@ export const AttributeTypes: Record<string, AttributeType> = {
   RichData: (value: string): any => {
     return richDataStorage.get(value);
   },
+  Date: (value: string): Date => {
+    return new Date(value);
+  },
   Boolean: Boolean,
   String: String,
   Number: Number
@@ -103,6 +106,11 @@ AttributeTypesSerialize.set(AttributeTypes.RichData, function (value: any, oldRa
   const richDataId = isRichDataId(oldRawValue) ? oldRawValue : generateRichDataId();
   richDataStorage.set(richDataId, value);
   return richDataId;
+});
+
+// TODO: test
+AttributeTypesSerialize.set(AttributeTypes.Date, function (value: Date): string {
+  return value.toISOString();
 });
 
 /**
@@ -167,7 +175,7 @@ export class AttributesAccess {
    * Return the element's attribute value with the correct type as defined into the attributes schema
    * @param name The name of the attribute
    */
-  get (name: string): any {
+  get <T=any> (name: string): T | string {
     const value  = this.elementNode.getAttribute(name);
     if(value !== null) {
       const schema = this.attributesSchema[name];
