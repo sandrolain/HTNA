@@ -48,6 +48,10 @@ export interface ControllerResult {
   adoptedCallback?: BaseCallback;
   /** Executed at native custom element attributeChangedCallback() */
   attributeChangedCallback?: AttributeChangedCallback | AttributeChangesCallbackRecord;
+  /** Executed when a MutationObserver event occurs in the light DOM of the element */
+  mutationObserverCallback?: MutationCallback;
+  /** The initialization configuration of the light DOM MutationObserver */
+  mutationObserverInit?: MutationObserverInit;
   /** Record of event listeners to add to the Element */
   listeners?: Record<string, EventListenerOrEventListenerObject>;
   /** Record of descriptors to define getters and setters of DOM node properties */
@@ -115,6 +119,7 @@ export class HTNAElement extends HTMLElement {
   #controllerArguments: ControllerArguments;
   #defaultAttributes: Map<string, any> = new Map();
   #initied: boolean = false;
+  #mutationObserver: MutationObserver;
 
   constructor () {
     super();
@@ -193,7 +198,6 @@ export class HTNAElement extends HTMLElement {
   }
 
   connectedCallback (): void {
-
     if(!this.#initied) {
       this.#initied = true;
       const constructor = this.constructor as typeof HTNAElement;
@@ -214,6 +218,7 @@ export class HTNAElement extends HTMLElement {
           this.defineProperties(this.#controllerResult.properties);
         }
       }
+
       window.customElements.upgrade(this);
     }
 
@@ -222,12 +227,28 @@ export class HTNAElement extends HTMLElement {
         this.addEventListener(name, this.#controllerResult.listeners[name]);
       }
     }
+
+    if(this.#controllerResult.mutationObserverCallback) {
+      this.#mutationObserver = new MutationObserver(this.#controllerResult.mutationObserverCallback);
+      const init: MutationObserverInit = this.#controllerResult.mutationObserverInit || {
+        attributes: true,
+        childList: true,
+        subtree: true,
+        characterData: true
+      };
+      this.#mutationObserver.observe(this, init);
+    }
+
     if(this.#controllerResult.connectedCallback) {
       this.#controllerResult.connectedCallback();
     }
   }
 
   disconnectedCallback (): void {
+    if(this.#mutationObserver) {
+      this.#mutationObserver.disconnect();
+      this.#mutationObserver = null;
+    }
     if(this.#controllerResult.listeners) {
       for(const name in this.#controllerResult.listeners) {
         this.removeEventListener(name, this.#controllerResult.listeners[name]);
