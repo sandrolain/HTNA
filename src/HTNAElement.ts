@@ -2,6 +2,7 @@ import { DOMAccess } from "./DOMAccess";
 import { AttributesAccess, AttributesMap, AttributesSchema, AttributesTypes } from "./AttributesAccess";
 import { SlotAccess } from "./SlotAccess";
 import { camelCase } from "./utils";
+import { Registry } from "./Registry";
 
 
 /** Data type for the accepted result from the render() function as ShadowDOM content */
@@ -229,6 +230,7 @@ export class HTNAElement extends HTMLElement {
     }
 
     if(this.#controllerResult.mutationObserverCallback) {
+      // TODO: simplify Mutations search
       this.#mutationObserver = new MutationObserver(this.#controllerResult.mutationObserverCallback);
       const init: MutationObserverInit = this.#controllerResult.mutationObserverInit || {
         attributes: true,
@@ -272,6 +274,15 @@ export class HTNAElement extends HTMLElement {
       } else if(this.#controllerResult.attributeChangedCallback[name]) {
         this.#controllerResult.attributeChangedCallback[name](name, oldValue, newValue);
       }
+    }
+  }
+
+  public static register (elementName: string = this.config.elementName): void {
+    const actual = Registry.get(elementName) as typeof HTMLElement;
+    if(!actual) {
+      Registry.add(elementName, this);
+    } else if(actual !== this) {
+      throw new Error(`"${elementName}" element already registered with another class`);
     }
   }
 }

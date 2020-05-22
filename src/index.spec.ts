@@ -1,7 +1,7 @@
 
-import { define, DefinedHTMLElement } from "./index";
+import { create, DefinedHTMLElement } from "./index";
 
-describe("define()", () => {
+describe("create()", () => {
 
   const externalStyles = `
     div {
@@ -19,10 +19,12 @@ describe("define()", () => {
     });
   });
 
-  test("define() a element with HTML render", async () => {
-    define("test-html", {
+  test("create() a element with HTML render", async () => {
+    const TestHtml = create({
+      elementName: "test-html",
       render: () => "<b>html test</b>"
     });
+    TestHtml.register();
   });
 
   test("Create HTML rendered element", async () => {
@@ -38,14 +40,16 @@ describe("define()", () => {
     expect(b.innerText).toStrictEqual("html test");
   });
 
-  test("define() an element with DOM render", async () => {
-    define("test-dom", {
+  test("create() an element with DOM render", async () => {
+    const TestDom = create({
+      elementName: "test-dom",
       render: () => {
         const $div = document.createElement("div");
         $div.appendChild(document.createTextNode("DOM test"));
         return $div;
       }
     });
+    TestDom.register();
   });
 
   test("Verify DOM rendered element shadow DOM", async () => {
@@ -58,14 +62,18 @@ describe("define()", () => {
 
   test("Re-define an element with same name trigger Error", async () => {
 
-    define("test-doubled", {
+    const TestDoubled = create({
+      elementName: "test-doubled",
       render: () => "<div></div>"
     });
+    TestDoubled.register();
 
     try {
-      define("test-doubled", {
+      const TestDoubled = create({
+        elementName: "test-doubled",
         render: () => "<div></div>"
       });
+      TestDoubled.register();
     } catch(e) {
       return;
     }
@@ -73,16 +81,18 @@ describe("define()", () => {
     throw new Error("This should not pass!");
   });
 
-  test("define() element style", async () => {
+  test("create() element style", async () => {
     const styles = `
       em {
         color: #FF0000;
       }
     `;
-    define("test-style", {
+    const TestStyle = create({
+      elementName: "test-style",
       render: () => "<em>html test</em>",
       style: styles
     });
+    TestStyle.register();
 
     const el = document.createElement("test-style");
     document.body.appendChild(el);
@@ -91,15 +101,16 @@ describe("define()", () => {
     expect(style.innerHTML).toStrictEqual(styles);
   });
 
-  test("define() attributes as property", async () => {
-    define("test-property", {
+  test("create() attributes as property", async () => {
+    create({
+      elementName: "test-property",
       render: () => "<em>html test</em>",
       attributesSchema: {
         foo: {
           property: true
         }
       }
-    });
+    }).register();
 
     const el = document.createElement("test-property") as DefinedHTMLElement;
     document.body.appendChild(el);
@@ -110,15 +121,16 @@ describe("define()", () => {
     expect(el.getAttribute("foo")).toStrictEqual("test");
   });
 
-  test("define() attributes as property with camelCase translation", async () => {
-    define("test-property-cc", {
+  test("create() attributes as property with camelCase translation", async () => {
+    create({
+      elementName: "test-property-cc",
       render: () => "<em>html test</em>",
       attributesSchema: {
         "foo-bar": {
           property: true
         }
       }
-    });
+    }).register();
 
     const el = document.createElement("test-property-cc") as DefinedHTMLElement;
     document.body.appendChild(el);
@@ -129,8 +141,9 @@ describe("define()", () => {
     expect(el.getAttribute("foo-bar")).toStrictEqual("test");
   });
 
-  test("define() generic attributeChangedCallback", (done) => {
-    define("test-property-atc", {
+  test("create() generic attributeChangedCallback", (done) => {
+    create({
+      elementName: "test-property-atc",
       render: () => "<em>html test</em>",
       attributesSchema: {
         "foo-bar": {
@@ -146,15 +159,16 @@ describe("define()", () => {
           done();
         }
       })
-    });
+    }).register();
 
     const el = document.createElement("test-property-atc");
     document.body.appendChild(el);
     el.setAttribute("foo-bar", "bar");
   });
 
-  test("define() specific attributeChangedCallback", (done) => {
-    define("test-property-atcs", {
+  test("create() specific attributeChangedCallback", (done) => {
+    create({
+      elementName: "test-property-atcs",
       render: () => "<em>html test</em>",
       attributesSchema: {
         "foo-bar": {
@@ -172,7 +186,7 @@ describe("define()", () => {
           }
         }
       })
-    });
+    }).register();
 
     const el = document.createElement("test-property-atcs");
     document.body.appendChild(el);

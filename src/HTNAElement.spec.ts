@@ -1,5 +1,5 @@
 import { HTNAElement, DefineConfig } from "./HTNAElement";
-import { Registry } from ".";
+import { Registry } from "./Registry";
 
 describe("HTNAElement", () => {
 
