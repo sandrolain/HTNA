@@ -81,7 +81,7 @@ export interface DefineConfig {
   /** Shadow DOM mode **/
   mode?: "open" | "closed";
   /** Enable the Element to behave implicitly as a form input field **/
-  formInput?: boolean;
+  formInput?: boolean | "checkbox";
   /** Tag name to extend **/
   extends?: string;
 }
@@ -121,7 +121,7 @@ export class HTNAElement extends HTMLElement {
   #controllerResult: ControllerResult = {};
   #controllerArguments: ControllerArguments;
   #defaultAttributes: Map<string, any> = new Map();
-  #formInput: boolean = false;
+  #formInput: boolean | "checkbox" = false;
   #initiated: boolean = false;
   #mutationObserver: MutationObserver;
 
@@ -132,7 +132,16 @@ export class HTNAElement extends HTMLElement {
     const config      = constructor.config;
 
     if(config.formInput) {
-      this.#formInput = true;
+      this.#formInput = config.formInput;
+
+      if(this.#formInput === "checkbox") {
+        config.attributesSchema.checked = {
+          type: Boolean,
+          observed: true,
+          property: true,
+          value: false
+        };
+      }
     }
 
     const attributesSchema: AttributesTypes   = {};
@@ -192,10 +201,20 @@ export class HTNAElement extends HTMLElement {
       input.setAttribute("value", this.getAttribute("value"));
       input.classList.add("htna-form-input");
       input.addEventListener("input", () => {
-        const newValue = input.value;
-        const oldValue = this.getAttribute("value");
-        if(oldValue !== newValue) {
-          this.setAttribute("value", newValue);
+        if(this.#formInput === "checkbox") {
+          const newValue = input.value;
+          if(newValue === null || newValue === "") {
+            this.removeAttribute("checked");
+          } else {
+            this.setAttribute("value", newValue);
+            this.setAttribute("checked", "checked");
+          }
+        } else {
+          const newValue = input.value;
+          const oldValue = this.getAttribute("value");
+          if(oldValue !== newValue) {
+            this.setAttribute("value", newValue);
+          }
         }
       });
       this.appendChild(input);
@@ -203,12 +222,28 @@ export class HTNAElement extends HTMLElement {
     return input;
   }
 
-  private setFormInputValue (value: string): void {
-    this.getFormInput().value = value;
+  private syncFormInputValue (): void {
+    const input = this.getFormInput();
+    input.setAttribute("value", this.getAttribute("value"));
+    input.setAttribute("name", this.getAttribute("name"));
   }
 
-  private setFormInputName (name: string): void {
-    this.getFormInput().setAttribute("name", name);
+  private removeFormInputValue (): void {
+    const input = this.getFormInput();
+    input.removeAttribute("value");
+    input.removeAttribute("name");
+  }
+
+  private updateFormInputValue (): void {
+    if(this.#formInput === "checkbox") {
+      if(this.#controllerArguments.attributes.get("checked")) {
+        this.syncFormInputValue();
+      } else {
+        this.removeFormInputValue();
+      }
+    } else {
+      this.syncFormInputValue();
+    }
   }
 
   // TODO
@@ -319,10 +354,8 @@ export class HTNAElement extends HTMLElement {
 
   attributeChangedCallback (name: string, oldValue: any, newValue: any): void {
     if(this.#formInput) {
-      if(name === "value") {
-        this.setFormInputValue(newValue);
-      } else if(name === "name") {
-        this.setFormInputName(newValue);
+      if(name === "name" || name === "value" || name === "checked") {
+        this.updateFormInputValue();
       }
     }
     if(this.#controllerResult.attributeChangedCallback) {
