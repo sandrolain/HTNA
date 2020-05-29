@@ -175,28 +175,6 @@ export class HTNAElement extends HTMLElement {
         set: (value: any) => attributesAccess.set(attributeName, value)
       });
     }
-
-    if(config.render) {
-      const renderResult = config.render(this.#controllerArguments);
-      if(typeof renderResult === "string") {
-        this.#shadow.innerHTML = renderResult;
-      } else if(renderResult instanceof HTMLTemplateElement) {
-        this.#shadow.appendChild(
-          renderResult.content.cloneNode(true)
-        );
-      } else if(renderResult instanceof HTMLElement || renderResult instanceof DocumentFragment) {
-        this.#shadow.appendChild(renderResult);
-      }
-    } else {
-      this.#shadow.innerHTML = "<slot></slot>";
-    }
-
-    if(config.style) {
-      const styleNode = document.createElement("style");
-      styleNode.setAttribute("type", "text/css");
-      styleNode.innerHTML = config.style;
-      this.#shadow.appendChild(styleNode);
-    }
   }
 
   private defineProperties (properties: PropertiesDescriptorsRecord): void {
@@ -261,6 +239,28 @@ export class HTNAElement extends HTMLElement {
           attributesAccess.set(name, value);
         }
       });
+
+      if(config.render) {
+        const renderResult = config.render(this.#controllerArguments);
+        if(typeof renderResult === "string") {
+          this.#shadow.innerHTML = renderResult;
+        } else if(renderResult instanceof HTMLTemplateElement) {
+          this.#shadow.appendChild(
+            renderResult.content.cloneNode(true)
+          );
+        } else if(renderResult instanceof HTMLElement || renderResult instanceof DocumentFragment) {
+          this.#shadow.appendChild(renderResult);
+        }
+      } else {
+        this.#shadow.innerHTML = "<slot></slot>";
+      }
+
+      if(config.style) {
+        const styleNode = document.createElement("style");
+        styleNode.setAttribute("type", "text/css");
+        styleNode.innerHTML = config.style;
+        this.#shadow.appendChild(styleNode);
+      }
 
       if(config.controller) {
         this.#controllerResult = config.controller(this.#controllerArguments) || {};
