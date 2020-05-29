@@ -78,11 +78,11 @@ export interface DefineConfig {
   attributes?: AttributesMap;
   /** Schema definition for types, observed and property attributes */
   attributesSchema?: AttributesSchema;
-  // Shadow DOM mode
+  /** Shadow DOM mode **/
   mode?: "open" | "closed";
-  // Enable the Element to behave implicitly as a form input field
+  /** Enable the Element to behave implicitly as a form input field **/
   formInput?: boolean;
-  // Tag name to extend
+  /** Tag name to extend **/
   extends?: string;
 }
 
