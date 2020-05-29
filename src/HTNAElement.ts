@@ -197,7 +197,6 @@ export class HTNAElement extends HTMLElement {
     if(!input) {
       input = document.createElement("input");
       input.setAttribute("type", "hidden");
-      this.updateFormInputValue();
       input.classList.add("htna-form-input");
       input.addEventListener("input", () => {
         if(this.#formInput === "checkbox") {
@@ -259,10 +258,6 @@ export class HTNAElement extends HTMLElement {
     if(!this.#initiated) {
       this.#initiated = true;
 
-      if(this.#formInput) {
-        this.getFormInput();
-      }
-
       const constructor = this.constructor as typeof HTNAElement;
       const config      = constructor.config;
 
@@ -273,6 +268,10 @@ export class HTNAElement extends HTMLElement {
           attributesAccess.set(name, value);
         }
       });
+
+      if(this.#formInput) {
+        this.updateFormInputValue();
+      }
 
       if(config.render) {
         const renderResult = config.render(this.#controllerArguments);
