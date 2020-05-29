@@ -197,8 +197,7 @@ export class HTNAElement extends HTMLElement {
     if(!input) {
       input = document.createElement("input");
       input.setAttribute("type", "hidden");
-      input.setAttribute("name", this.getAttribute("name"));
-      input.setAttribute("value", this.getAttribute("value"));
+      this.updateFormInputValue();
       input.classList.add("htna-form-input");
       input.addEventListener("input", () => {
         if(this.#formInput === "checkbox") {
@@ -353,10 +352,8 @@ export class HTNAElement extends HTMLElement {
   }
 
   attributeChangedCallback (name: string, oldValue: any, newValue: any): void {
-    if(this.#formInput) {
-      if(name === "name" || name === "value" || name === "checked") {
-        this.updateFormInputValue();
-      }
+    if(this.#formInput && (name === "name" || name === "value" || name === "checked")) {
+      this.updateFormInputValue();
     }
     if(this.#controllerResult.attributeChangedCallback) {
       if(typeof this.#controllerResult.attributeChangedCallback === "function") {
