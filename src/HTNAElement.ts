@@ -210,6 +210,8 @@ export class HTNAElement extends HTMLElement {
     if(!input) {
       input = document.createElement("input");
       input.setAttribute("type", "hidden");
+      input.setAttribute("name", this.getAttribute("name"));
+      input.setAttribute("value", this.getAttribute("value"));
       input.classList.add("htna-form-input");
       input.addEventListener("input", () => {
         const newValue = input.value;
