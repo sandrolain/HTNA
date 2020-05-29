@@ -113,6 +113,11 @@ AttributeTypesSerialize.set(AttributeTypes.Date, function (value: Date): string 
   return value.toISOString();
 });
 
+// TODO: test
+AttributeTypesSerialize.set(AttributeTypes.Boolean, function (value: boolean, oldRawValue: string, name: string): string {
+  return value ? name : null;
+});
+
 /**
  * Map for the available attributes value unserializer.<br/>
  * Map's items key must be the *AttributeType* class for the data type<br/>
@@ -120,14 +125,8 @@ AttributeTypesSerialize.set(AttributeTypes.Date, function (value: Date): string 
  */
 export const AttributeTypesUnserialize: Map<AttributeType, (value: string, name: string) => any> = new Map();
 
-AttributeTypesUnserialize.set(Boolean, function (value: string, name: string): boolean {
-  if(value === name || value === "true" || value === "on") {
-    return true;
-  }
-  if(value === "false" || value === "off" || value === "") {
-    return false;
-  }
-  return Boolean(value);
+AttributeTypesUnserialize.set(Boolean, function (value: string): boolean {
+  return (value !== null);
 });
 
 
@@ -177,15 +176,13 @@ export class AttributesAccess {
    */
   get <T=any> (name: string): T | string {
     const value  = this.elementNode.getAttribute(name);
-    if(value !== null) {
-      const schema = this.attributesSchema[name];
-      if(schema) {
-        const unserializer = AttributeTypesUnserialize.get(schema);
-        if(unserializer) {
-          return unserializer(value, name);
-        }
-        return schema(value);
+    const schema = this.attributesSchema[name];
+    if(schema) {
+      const unserializer = AttributeTypesUnserialize.get(schema);
+      if(unserializer) {
+        return unserializer(value, name);
       }
+      return value !== null ? schema(value) : null;
     }
     return value;
   }
@@ -202,7 +199,11 @@ export class AttributesAccess {
       const oldValue   = this.elementNode.getAttribute(name);
       value = serializer(value, oldValue, name);
     }
-    this.elementNode.setAttribute(name, value.toString());
+    if(value !== null) {
+      this.elementNode.setAttribute(name, value.toString());
+    } else {
+      this.elementNode.removeAttribute(name);
+    }
   }
 
   remove (name: string): void {
