@@ -80,6 +80,8 @@ export interface DefineConfig {
   attributesSchema?: AttributesSchema;
   // Shadow DOM mode
   mode?: "open" | "closed";
+  // Enable the Element to behave implicitly as a form input field
+  formInput?: boolean;
   // Tag name to extend
   extends?: string;
 }
@@ -119,7 +121,8 @@ export class HTNAElement extends HTMLElement {
   #controllerResult: ControllerResult = {};
   #controllerArguments: ControllerArguments;
   #defaultAttributes: Map<string, any> = new Map();
-  #initied: boolean = false;
+  #formInput: boolean = false;
+  #initiated: boolean = false;
   #mutationObserver: MutationObserver;
 
   constructor () {
@@ -127,6 +130,10 @@ export class HTNAElement extends HTMLElement {
 
     const constructor = this.constructor as typeof HTNAElement;
     const config      = constructor.config;
+
+    if(config.formInput) {
+      this.#formInput = true;
+    }
 
     const attributesSchema: AttributesTypes   = {};
     const propertyAttributes: string[] = [];
@@ -198,9 +205,50 @@ export class HTNAElement extends HTMLElement {
     }
   }
 
+  private getFormInput (): HTMLInputElement {
+    let input = this.querySelector<HTMLInputElement>("input.htna-form-input");
+    if(!input) {
+      input = document.createElement("input");
+      input.setAttribute("type", "hidden");
+      input.classList.add("htna-form-input");
+      input.addEventListener("input", () => {
+        const newValue = input.value;
+        const oldValue = this.getAttribute("value");
+        if(oldValue !== newValue) {
+          this.setAttribute("value", newValue);
+        }
+      });
+      this.appendChild(input);
+    }
+    return input;
+  }
+
+  private setFormInputValue (value: string): void {
+    this.getFormInput().value = value;
+  }
+
+  private setFormInputName (name: string): void {
+    this.getFormInput().setAttribute("name", name);
+  }
+
+  // TODO
+  // setCustomValidity()
+  // checkValidity () {
+  // TODO: trigger invalid
+  // }
+  // reportValidity()
+  // get validity
+  // get validationMessage
+  // get willValidate
+
   connectedCallback (): void {
-    if(!this.#initied) {
-      this.#initied = true;
+    if(!this.#initiated) {
+      this.#initiated = true;
+
+      if(this.#formInput) {
+        this.getFormInput();
+      }
+
       const constructor = this.constructor as typeof HTNAElement;
       const config      = constructor.config;
 
@@ -268,6 +316,13 @@ export class HTNAElement extends HTMLElement {
   }
 
   attributeChangedCallback (name: string, oldValue: any, newValue: any): void {
+    if(this.#formInput) {
+      if(name === "value") {
+        this.setFormInputValue(newValue);
+      } else if(name === "name") {
+        this.setFormInputName(newValue);
+      }
+    }
     if(this.#controllerResult.attributeChangedCallback) {
       if(typeof this.#controllerResult.attributeChangedCallback === "function") {
         this.#controllerResult.attributeChangedCallback(name, oldValue, newValue);
