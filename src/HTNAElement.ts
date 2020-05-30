@@ -194,7 +194,7 @@ export class HTNAElement extends HTMLElement {
         input.setAttribute("type", "hidden");
       }
       input.classList.add("htna-form-input");
-      input.addEventListener("input", () => {
+      const updateFromInput = (): void => {
         if(this.#formInput === "checkbox" || this.#formInput === "radio") {
           if(input.checked) {
             this.setAttribute("checked", "checked");
@@ -208,7 +208,8 @@ export class HTNAElement extends HTMLElement {
             this.setAttribute("value", newValue);
           }
         }
-      });
+      };
+      input.addEventListener("change", updateFromInput);
       this.appendChild(input);
     }
     return input;
