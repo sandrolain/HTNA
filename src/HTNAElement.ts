@@ -81,7 +81,7 @@ export interface DefineConfig {
   /** Shadow DOM mode **/
   mode?: "open" | "closed";
   /** Enable the Element to behave implicitly as a form input field **/
-  formInput?: boolean | "checkbox";
+  formInput?: boolean | "checkbox" | "radio";
   /** Tag name to extend **/
   extends?: string;
 }
@@ -121,7 +121,7 @@ export class HTNAElement extends HTMLElement {
   #controllerResult: ControllerResult = {};
   #controllerArguments: ControllerArguments;
   #defaultAttributes: Map<string, any> = new Map();
-  #formInput: boolean | "checkbox" = false;
+  #formInput: boolean | "checkbox" | "radio" = false;
   #initiated: boolean = false;
   #mutationObserver: MutationObserver;
 
@@ -133,15 +133,6 @@ export class HTNAElement extends HTMLElement {
 
     if(config.formInput) {
       this.#formInput = config.formInput;
-
-      if(this.#formInput === "checkbox") {
-        config.attributesSchema.checked = {
-          type: Boolean,
-          observed: true,
-          property: true,
-          value: false
-        };
-      }
     }
 
     const attributesSchema: AttributesTypes   = {};
@@ -196,16 +187,19 @@ export class HTNAElement extends HTMLElement {
     let input = this.querySelector<HTMLInputElement>("input.htna-form-input");
     if(!input) {
       input = document.createElement("input");
-      input.setAttribute("type", "hidden");
+      if(this.#formInput === "checkbox" || this.#formInput === "radio") {
+        input.style.display = "none";
+        input.setAttribute("type", this.#formInput);
+      } else {
+        input.setAttribute("type", "hidden");
+      }
       input.classList.add("htna-form-input");
       input.addEventListener("input", () => {
-        if(this.#formInput === "checkbox") {
-          const newValue = input.value;
-          if(newValue === null || newValue === "") {
-            this.removeAttribute("checked");
-          } else {
-            this.setAttribute("value", newValue);
+        if(this.#formInput === "checkbox" || this.#formInput === "radio") {
+          if(input.checked) {
             this.setAttribute("checked", "checked");
+          } else {
+            this.removeAttribute("checked");
           }
         } else {
           const newValue = input.value;
@@ -220,27 +214,14 @@ export class HTNAElement extends HTMLElement {
     return input;
   }
 
-  private syncFormInputValue (): void {
-    const input = this.getFormInput();
-    input.setAttribute("value", this.getAttribute("value"));
-    input.setAttribute("name", this.getAttribute("name"));
-  }
-
-  private removeFormInputValue (): void {
-    const input = this.getFormInput();
-    input.removeAttribute("value");
-    input.removeAttribute("name");
-  }
-
   private updateFormInputValue (): void {
-    if(this.#formInput === "checkbox") {
-      if(this.#controllerArguments.attributes.get("checked")) {
-        this.syncFormInputValue();
-      } else {
-        this.removeFormInputValue();
-      }
-    } else {
-      this.syncFormInputValue();
+    const input = this.getFormInput();
+
+    input.setAttribute("value", this.getAttribute("value"));
+    input.setAttribute("name",  this.getAttribute("name"));
+
+    if(this.#formInput === "checkbox" || this.#formInput === "radio") {
+      input.checked = !!this.#controllerArguments.attributes.get("checked");
     }
   }
 
@@ -261,8 +242,8 @@ export class HTNAElement extends HTMLElement {
       const constructor = this.constructor as typeof HTNAElement;
       const config      = constructor.config;
 
-      const attributesAccess = this.#controllerArguments.attributes;
       // Set the initial attributes values
+      const attributesAccess = this.#controllerArguments.attributes;
       this.#defaultAttributes.forEach((value: any, name: string) => {
         if(!attributesAccess.has(name)) {
           attributesAccess.set(name, value);
