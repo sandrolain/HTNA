@@ -122,6 +122,7 @@ export class HTNAElement extends HTMLElement {
   #controllerArguments: ControllerArguments;
   #defaultAttributes: Map<string, any> = new Map();
   #formInput: boolean | "checkbox" | "radio" = false;
+  #formInputChangeITV: number;
   #initiated: boolean = false;
   #mutationObserver: MutationObserver;
 
@@ -194,35 +195,56 @@ export class HTNAElement extends HTMLElement {
         input.setAttribute("type", "hidden");
       }
       input.classList.add("htna-form-input");
-      const updateFromInput = (): void => {
-        if(this.#formInput === "checkbox" || this.#formInput === "radio") {
-          if(input.checked) {
-            this.setAttribute("checked", "checked");
-          } else {
-            this.removeAttribute("checked");
-          }
-        } else {
-          const newValue = input.value;
-          const oldValue = this.getAttribute("value");
-          if(oldValue !== newValue) {
-            this.setAttribute("value", newValue);
-          }
-        }
-      };
-      input.addEventListener("change", updateFromInput);
+      input.addEventListener("change", () => {
+        this.updateChangeFormInputValue();
+      });
       this.appendChild(input);
     }
     return input;
   }
 
+  private updateChangeFormInputValue (): void {
+    const input = this.getFormInput();
+    if(this.#formInput === "checkbox" || this.#formInput === "radio") {
+      if(input.checked) {
+        this.setAttribute("checked", "checked");
+      } else {
+        this.removeAttribute("checked");
+      }
+    } else {
+      const newValue = input.value;
+      const oldValue = this.getAttribute("value");
+      if(oldValue !== newValue) {
+        this.setAttribute("value", newValue);
+      }
+    }
+  }
+
   private updateFormInputValue (): void {
     const input = this.getFormInput();
-
     input.setAttribute("value", this.getAttribute("value"));
     input.setAttribute("name",  this.getAttribute("name"));
-
     if(this.#formInput === "checkbox" || this.#formInput === "radio") {
       input.checked = !!this.#controllerArguments.attributes.get("checked");
+    }
+  }
+
+  private startFormInputRadioObserver (): void {
+    const input = this.getFormInput();
+    let latestValue = input.checked;
+    const observer = (): void => {
+      if(latestValue !== input.checked) {
+        latestValue = input.checked;
+      }
+      this.#formInputChangeITV = requestAnimationFrame(observer);
+    };
+    this.#formInputChangeITV = requestAnimationFrame(observer);
+  }
+
+  private stopFormInputRadioObserver (): void {
+    if(this.#formInputChangeITV) {
+      cancelAnimationFrame(this.#formInputChangeITV);
+      this.#formInputChangeITV = null;
     }
   }
 
@@ -306,12 +328,19 @@ export class HTNAElement extends HTMLElement {
       this.#mutationObserver.observe(this, init);
     }
 
+    if(this.#formInput === "radio") {
+      this.startFormInputRadioObserver();
+    }
+
     if(this.#controllerResult.connectedCallback) {
       this.#controllerResult.connectedCallback();
     }
   }
 
   disconnectedCallback (): void {
+    if(this.#formInput === "radio") {
+      this.stopFormInputRadioObserver();
+    }
     if(this.#mutationObserver) {
       this.#mutationObserver.disconnect();
       this.#mutationObserver = null;
