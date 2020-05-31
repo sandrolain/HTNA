@@ -61,6 +61,13 @@ export const AttributeTypes: Record<string, AttributeType> = {
   // TODO: test
   CSVDate: (value: string): Date[] => value.split(",").map((str) => new Date(str)),
   // TODO: test
+  Entries: (value: string): [string, string][] => value.split(";").map((str) => {
+    const parts = str.split(":");
+    const key   = parts.shift();
+    const value = parts.join(":");
+    return [key, value];
+  }),
+  // TODO: test
   RichData: (value: string): any => {
     return richDataStorage.get(value);
   },
@@ -99,6 +106,11 @@ AttributeTypesSerialize.set(AttributeTypes.CSVNumber, function (value: number[])
 // TODO: test
 AttributeTypesSerialize.set(AttributeTypes.CSVDate, function (value: Date[]): string {
   return value.map((date) => date.toISOString()).join(",");
+});
+
+// TODO: test
+AttributeTypesSerialize.set(AttributeTypes.Entries, function (value: [string, string][]): string {
+  return value.map((entry) => entry.join(":")).join(";");
 });
 
 // TODO: test
