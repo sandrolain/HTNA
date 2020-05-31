@@ -68,4 +68,33 @@ export class DOMAccess {
       this.node.addEventListener(name, callback);
     });
   }
+
+  // TODO: test
+  // TODO: docs
+  empty (): void {
+    for(const child of Array.from(this.node.childNodes)) {
+      if(child instanceof HTMLStyleElement && child.id === "htna-shadow-style") {
+        continue;
+      }
+      this.node.removeChild(child);
+    }
+  }
+
+  // TODO: test
+  // TODO: docs
+  append (value: string | HTMLElement | DocumentFragment): void {
+    if(typeof value === "string") {
+      const template = document.createElement("template");
+      template.innerHTML = value;
+      this.node.appendChild(
+        template.content.cloneNode(true)
+      );
+    } else if(value instanceof HTMLTemplateElement) {
+      this.node.appendChild(
+        value.content.cloneNode(true)
+      );
+    } else if(value instanceof HTMLElement || value instanceof DocumentFragment) {
+      this.node.appendChild(value);
+    }
+  }
 }
