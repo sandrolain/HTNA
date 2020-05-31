@@ -69,7 +69,7 @@ export interface DefineConfig {
   /** The tag name of the custom element */
   elementName?: string;
   /** Rendering function used to generate the custom element HTML content */
-  render: RenderFunction;
+  render?: RenderFunction;
   /** Style CSS string for Element ShadowDOM */
   style?: string;
   /** Controller function to apply Element logic */
