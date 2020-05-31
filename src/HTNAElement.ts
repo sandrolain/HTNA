@@ -235,6 +235,7 @@ export class HTNAElement extends HTMLElement {
     const observer = (): void => {
       if(latestValue !== input.checked) {
         latestValue = input.checked;
+        this.updateChangeFormInputValue();
       }
       this.#formInputChangeITV = requestAnimationFrame(observer);
     };
