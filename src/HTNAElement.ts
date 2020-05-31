@@ -13,9 +13,9 @@ export interface ControllerArguments {
   /** DOM Element Node for the current instance */
   element: DefinedHTMLElement;
   /** Instance of *DOMAccess* for access the LightDOM of current Element */
-  light: DOMAccess;
+  light: DOMAccess<HTMLElement>;
   /** Instance of *DOMAccess* for access the ShadowDOM of current Element */
-  shadow: DOMAccess;
+  shadow: DOMAccess<ShadowRoot>;
   /** Instance of *HTNAAttributesAccess* for access the attributes of current element with Schema */
   attributes: AttributesAccess;
   /** Instance of *SlotAccess* for access to the slots utilities  */

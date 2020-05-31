@@ -2,9 +2,9 @@
 /**
  * Enable access to Element or ShadowDOM nodes
  */
-export class DOMAccess {
+export class DOMAccess<E extends ShadowRoot | HTMLElement> {
 
-  constructor (private node: ShadowRoot | HTMLElement) {}
+  constructor (readonly node: E) {}
 
   /**
    * Alias for querySelector inside Element or ShadowDOM
