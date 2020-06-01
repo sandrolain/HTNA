@@ -65,7 +65,7 @@ export type RenderFunction = (controllerArguments: ControllerArguments) => Templ
 /** Type of controller function to apply Element logic */
 export type ControllerFunction = (controllerArguments: ControllerArguments) => ControllerResult | void;
 
-export interface DefineConfig {
+export interface HTNAElementConfig {
   /** The tag name of the custom element */
   elementName?: string;
   /** Rendering function used to generate the custom element HTML content */
@@ -99,7 +99,7 @@ export interface DefinedHTMLElement extends HTNAElement {
 }
 
 export class HTNAElement extends HTMLElement {
-  static config: DefineConfig;
+  static config: HTNAElementConfig;
 
   private static observedAttributesArray: string[];
 
