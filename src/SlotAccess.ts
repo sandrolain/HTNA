@@ -8,11 +8,19 @@ export class SlotAccess {
   constructor (private elementNode: HTMLElement) {}
 
   /**
-   * Returns the Light DOM node of the indicated slot
+   * Returns the first Light DOM node for the indicated slot
    * @param slotName The name of the slot
    */
-  get (slotName: string): HTMLElement {
-    return this.elementNode.querySelector<HTMLElement>(`*[slot="${slotName}"]`);
+  get<T extends HTMLElement = HTMLElement> (slotName: string): T {
+    return this.elementNode.querySelector<T>(`*[slot="${slotName}"]`);
+  }
+
+  /**
+   * Returns all the Light DOM nodes for the indicated slot
+   * @param slotName The name of the slot
+   */
+  getAll<T extends HTMLElement = HTMLElement> (slotName: string): NodeListOf<T> {
+    return this.elementNode.querySelectorAll<T>(`*[slot="${slotName}"]`);
   }
 
   /**
@@ -56,4 +64,6 @@ export class SlotAccess {
     }
     return slotNode;
   }
+
+  // TODO: removeAll
 }
