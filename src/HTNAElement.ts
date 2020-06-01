@@ -282,7 +282,9 @@ export class HTNAElement extends HTMLElement {
         const renderResult = config.render(this.#controllerArguments);
         this.#controllerArguments.shadow.append(renderResult);
       } else {
-        this.#shadow.innerHTML = "<slot></slot>";
+        this.#shadow.appendChild(
+          document.createElement("slot")
+        );
       }
 
       if(config.style) {
