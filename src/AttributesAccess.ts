@@ -26,6 +26,12 @@ export interface AttributesSchema {
 
     /** The initial default value for the current attribute */
     value?: any;
+
+    /**
+     * Name of the event to be dispatched when the attribute change. true = default "attributename-changed"
+     * Implementation compatible with: https://github.com/robdodson/angular-custom-elements
+     * */
+    dispatchEvent?: string | true;
   };
 }
 
@@ -148,7 +154,8 @@ AttributeTypesUnserialize.set(Boolean, function (value: string): boolean {
 export class AttributesAccess {
   constructor (
     private elementNode: HTMLElement,
-    private attributesSchema: AttributesTypes
+    private attributesSchema: AttributesTypes,
+    private toDispatchAttributes: Record<string, string | boolean>
   ) {}
 
   /**
@@ -220,5 +227,16 @@ export class AttributesAccess {
 
   remove (name: string): void {
     this.elementNode.removeAttribute(name);
+  }
+
+  getDispatchName (name: string): string {
+    let dispatchName = this.toDispatchAttributes[name];
+    if(dispatchName) {
+      if(dispatchName === true) {
+        dispatchName = `${name}-changed`;
+      }
+      return dispatchName;
+    }
+    return null;
   }
 }

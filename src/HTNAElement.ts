@@ -138,6 +138,7 @@ export class HTNAElement extends HTMLElement {
 
     const attributesSchema: AttributesTypes   = {};
     const propertyAttributes: string[] = [];
+    const toDispatchAttributes: Record<string, string | boolean> = {};
 
     if(config.attributesSchema) {
       for(const name in config.attributesSchema) {
@@ -151,6 +152,7 @@ export class HTNAElement extends HTMLElement {
         if(attribute.value !== undefined) {
           this.#defaultAttributes.set(name, attribute.value);
         }
+        toDispatchAttributes[name] = attribute.dispatchEvent || false;
       }
     }
 
@@ -162,7 +164,7 @@ export class HTNAElement extends HTMLElement {
       element: this as unknown as DefinedHTMLElement,
       shadow: new DOMAccess(this.#shadow),
       light: new DOMAccess(this as HTMLElement),
-      attributes: new AttributesAccess(this, attributesSchema),
+      attributes: new AttributesAccess(this, attributesSchema, toDispatchAttributes),
       slot: new SlotAccess(this)
     });
 
@@ -367,6 +369,15 @@ export class HTNAElement extends HTMLElement {
       } else if(this.#controllerResult.attributeChangedCallback[name]) {
         this.#controllerResult.attributeChangedCallback[name](name, oldValue, newValue);
       }
+    }
+
+    const dispatchName = this.#controllerArguments.attributes.getDispatchName(name);
+    if(dispatchName) {
+      this.#controllerArguments.light.dispatch(dispatchName, {
+        name,
+        value: newValue,
+        oldValue: oldValue
+      });
     }
   }
 
