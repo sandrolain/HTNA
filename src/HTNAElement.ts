@@ -78,8 +78,8 @@ export interface HTNAElementConfig {
   attributes?: AttributesMap;
   /** Schema definition for types, observed and property attributes */
   attributesSchema?: AttributesSchema;
-  /** Shadow DOM mode **/
-  mode?: "open" | "closed";
+  /** Shadow DOM mode, false to disable */
+  shadow?: "open" | "closed" | false;
   /** Enable the Element to behave implicitly as a form input field **/
   formInput?: boolean | "checkbox" | "radio";
   /** Tag name to extend **/
@@ -156,13 +156,15 @@ export class HTNAElement extends HTMLElement {
       }
     }
 
-    this.#shadow = this.attachShadow({
-      mode: config.mode || "closed"
-    });
+    if(config.shadow !== false) {
+      this.#shadow = this.attachShadow({
+        mode: config.shadow || "closed"
+      });
+    }
 
     this.#controllerArguments = Object.freeze({
       element: this as unknown as DefinedHTMLElement,
-      shadow: new DOMAccess(this.#shadow),
+      shadow: this.#shadow ? new DOMAccess(this.#shadow) : null,
       light: new DOMAccess(this as HTMLElement),
       attributes: new AttributesAccess(this, attributesSchema, toDispatchAttributes),
       slot: new SlotAccess(this)
@@ -282,11 +284,11 @@ export class HTNAElement extends HTMLElement {
 
       if(config.render) {
         const renderResult = config.render(this.#controllerArguments);
-        this.#controllerArguments.shadow.append(renderResult);
-      } else {
-        this.#shadow.appendChild(
-          document.createElement("slot")
-        );
+        if(this.#controllerArguments.shadow) {
+          this.#controllerArguments.shadow.append(renderResult);
+        } else {
+          this.#controllerArguments.light.append(renderResult);
+        }
       }
 
       if(config.style) {
@@ -294,7 +296,11 @@ export class HTNAElement extends HTMLElement {
         styleNode.setAttribute("id", "htna-shadow-style");
         styleNode.setAttribute("type", "text/css");
         styleNode.innerHTML = config.style;
-        this.#shadow.appendChild(styleNode);
+        if(this.#controllerArguments.shadow) {
+          this.#controllerArguments.shadow.append(styleNode);
+        } else {
+          this.#controllerArguments.light.append(styleNode);
+        }
       }
 
       if(config.controller) {
