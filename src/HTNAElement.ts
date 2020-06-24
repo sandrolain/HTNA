@@ -117,14 +117,14 @@ export class HTNAElement extends HTMLElement {
     return this.observedAttributesArray;
   }
 
-  #shadow: ShadowRoot;
-  #controllerResult: ControllerResult = {};
-  #controllerArguments: ControllerArguments;
-  #defaultAttributes: Map<string, any> = new Map();
-  #formInput: boolean | "checkbox" | "radio" = false;
-  #formInputChangeITV: number;
-  #initiated: boolean = false;
-  #mutationObserver: MutationObserver;
+  private shadow: ShadowRoot;
+  protected controllerResult: ControllerResult = {};
+  protected access: ControllerArguments;
+  private defaultAttributes: Map<string, any> = new Map();
+  private formInput: boolean | "checkbox" | "radio" = false;
+  private formInputChangeITV: number;
+  private initiated: boolean = false;
+  private mutationObserver: MutationObserver;
 
   constructor () {
     super();
@@ -133,7 +133,7 @@ export class HTNAElement extends HTMLElement {
     const config      = constructor.config;
 
     if(config.formInput) {
-      this.#formInput = config.formInput;
+      this.formInput = config.formInput;
     }
 
     const attributesSchema: AttributesTypes   = {};
@@ -150,27 +150,27 @@ export class HTNAElement extends HTMLElement {
           propertyAttributes.push(name);
         }
         if(attribute.value !== undefined) {
-          this.#defaultAttributes.set(name, attribute.value);
+          this.defaultAttributes.set(name, attribute.value);
         }
         toDispatchAttributes[name] = attribute.dispatchEvent || false;
       }
     }
 
     if(config.shadow !== false) {
-      this.#shadow = this.attachShadow({
+      this.shadow = this.attachShadow({
         mode: config.shadow || "closed"
       });
     }
 
-    this.#controllerArguments = Object.freeze({
+    this.access = Object.freeze({
       element: this as unknown as DefinedHTMLElement,
-      shadow: this.#shadow ? new DOMAccess(this.#shadow) : null,
+      shadow: this.shadow ? new DOMAccess(this.shadow) : null,
       light: new DOMAccess(this as HTMLElement),
       attributes: new AttributesAccess(this, attributesSchema, toDispatchAttributes),
       slot: new SlotAccess(this)
     });
 
-    const attributesAccess = this.#controllerArguments.attributes;
+    const attributesAccess = this.access.attributes;
 
     // Add getter / setter for properties
     for(const attributeName of propertyAttributes) {
@@ -192,9 +192,9 @@ export class HTNAElement extends HTMLElement {
     let input = this.querySelector<HTMLInputElement>("input.htna-form-input");
     if(!input) {
       input = document.createElement("input");
-      if(this.#formInput === "checkbox" || this.#formInput === "radio") {
+      if(this.formInput === "checkbox" || this.formInput === "radio") {
         input.style.display = "none";
-        input.setAttribute("type", this.#formInput);
+        input.setAttribute("type", this.formInput);
       } else {
         input.setAttribute("type", "hidden");
       }
@@ -209,7 +209,7 @@ export class HTNAElement extends HTMLElement {
 
   private updateChangeFormInputValue (): void {
     const input = this.getFormInput();
-    if(this.#formInput === "checkbox" || this.#formInput === "radio") {
+    if(this.formInput === "checkbox" || this.formInput === "radio") {
       if(input.checked) {
         this.setAttribute("checked", "checked");
       } else {
@@ -228,8 +228,8 @@ export class HTNAElement extends HTMLElement {
     const input = this.getFormInput();
     input.setAttribute("value", this.getAttribute("value"));
     input.setAttribute("name",  this.getAttribute("name"));
-    if(this.#formInput === "checkbox" || this.#formInput === "radio") {
-      input.checked = !!this.#controllerArguments.attributes.get("checked");
+    if(this.formInput === "checkbox" || this.formInput === "radio") {
+      input.checked = !!this.access.attributes.get("checked");
     }
   }
 
@@ -241,15 +241,15 @@ export class HTNAElement extends HTMLElement {
         latestValue = input.checked;
         this.updateChangeFormInputValue();
       }
-      this.#formInputChangeITV = requestAnimationFrame(observer);
+      this.formInputChangeITV = requestAnimationFrame(observer);
     };
-    this.#formInputChangeITV = requestAnimationFrame(observer);
+    this.formInputChangeITV = requestAnimationFrame(observer);
   }
 
   private stopFormInputRadioObserver (): void {
-    if(this.#formInputChangeITV) {
-      cancelAnimationFrame(this.#formInputChangeITV);
-      this.#formInputChangeITV = null;
+    if(this.formInputChangeITV) {
+      cancelAnimationFrame(this.formInputChangeITV);
+      this.formInputChangeITV = null;
     }
   }
 
@@ -263,123 +263,131 @@ export class HTNAElement extends HTMLElement {
   // get validationMessage
   // get willValidate
 
+  private appendRender (renderFn: RenderFunction): void {
+    const renderResult = renderFn(this.access);
+    if(this.access.shadow) {
+      this.access.shadow.append(renderResult);
+    } else {
+      this.access.light.append(renderResult);
+    }
+  }
+
+  private appendStyle (style: string): void {
+    const styleNode = document.createElement("style");
+    styleNode.classList.add("htna-scoped-style");
+    styleNode.setAttribute("type", "text/css");
+    styleNode.innerHTML = style;
+    if(this.access.shadow) {
+      this.access.shadow.append(styleNode);
+    } else {
+      this.access.light.append(styleNode);
+    }
+  }
+
   connectedCallback (): void {
-    if(!this.#initiated) {
-      this.#initiated = true;
+    if(!this.initiated) {
+      this.initiated = true;
 
       const constructor = this.constructor as typeof HTNAElement;
       const config      = constructor.config;
 
       // Set the initial attributes values
-      const attributesAccess = this.#controllerArguments.attributes;
-      this.#defaultAttributes.forEach((value: any, name: string) => {
+      const attributesAccess = this.access.attributes;
+      this.defaultAttributes.forEach((value: any, name: string) => {
         if(!attributesAccess.has(name)) {
           attributesAccess.set(name, value);
         }
       });
 
-      if(this.#formInput) {
+      if(this.formInput) {
         this.updateFormInputValue();
       }
 
       if(config.render) {
-        const renderResult = config.render(this.#controllerArguments);
-        if(this.#controllerArguments.shadow) {
-          this.#controllerArguments.shadow.append(renderResult);
-        } else {
-          this.#controllerArguments.light.append(renderResult);
-        }
+        this.appendRender(config.render);
       }
 
       if(config.style) {
-        const styleNode = document.createElement("style");
-        styleNode.setAttribute("id", "htna-shadow-style");
-        styleNode.setAttribute("type", "text/css");
-        styleNode.innerHTML = config.style;
-        if(this.#controllerArguments.shadow) {
-          this.#controllerArguments.shadow.append(styleNode);
-        } else {
-          this.#controllerArguments.light.append(styleNode);
-        }
+        this.appendStyle(config.style);
       }
 
       if(config.controller) {
-        this.#controllerResult = config.controller(this.#controllerArguments) || {};
+        this.controllerResult = config.controller(this.access) || {};
 
-        if(this.#controllerResult.properties) {
-          this.defineProperties(this.#controllerResult.properties);
+        if(this.controllerResult.properties) {
+          this.defineProperties(this.controllerResult.properties);
         }
       }
 
       window.customElements.upgrade(this);
     }
 
-    if(this.#controllerResult.listeners) {
-      for(const name in this.#controllerResult.listeners) {
-        this.addEventListener(name, this.#controllerResult.listeners[name]);
+    if(this.controllerResult.listeners) {
+      for(const name in this.controllerResult.listeners) {
+        this.addEventListener(name, this.controllerResult.listeners[name]);
       }
     }
 
-    if(this.#controllerResult.mutationObserverCallback) {
+    if(this.controllerResult.mutationObserverCallback) {
       // TODO: simplify Mutations search
-      this.#mutationObserver = new MutationObserver(this.#controllerResult.mutationObserverCallback);
-      const init: MutationObserverInit = this.#controllerResult.mutationObserverInit || {
+      this.mutationObserver = new MutationObserver(this.controllerResult.mutationObserverCallback);
+      const init: MutationObserverInit = this.controllerResult.mutationObserverInit || {
         attributes: true,
         childList: true,
         subtree: true,
         characterData: true
       };
-      this.#mutationObserver.observe(this, init);
+      this.mutationObserver.observe(this, init);
     }
 
-    if(this.#formInput === "radio") {
+    if(this.formInput === "radio") {
       this.startFormInputRadioObserver();
     }
 
-    if(this.#controllerResult.connectedCallback) {
-      this.#controllerResult.connectedCallback();
+    if(this.controllerResult.connectedCallback) {
+      this.controllerResult.connectedCallback();
     }
   }
 
   disconnectedCallback (): void {
-    if(this.#formInput === "radio") {
+    if(this.formInput === "radio") {
       this.stopFormInputRadioObserver();
     }
-    if(this.#mutationObserver) {
-      this.#mutationObserver.disconnect();
-      this.#mutationObserver = null;
+    if(this.mutationObserver) {
+      this.mutationObserver.disconnect();
+      this.mutationObserver = null;
     }
-    if(this.#controllerResult.listeners) {
-      for(const name in this.#controllerResult.listeners) {
-        this.removeEventListener(name, this.#controllerResult.listeners[name]);
+    if(this.controllerResult.listeners) {
+      for(const name in this.controllerResult.listeners) {
+        this.removeEventListener(name, this.controllerResult.listeners[name]);
       }
     }
-    if(this.#controllerResult.disconnectedCallback) {
-      this.#controllerResult.disconnectedCallback();
+    if(this.controllerResult.disconnectedCallback) {
+      this.controllerResult.disconnectedCallback();
     }
   }
 
   adoptedCallback (): void {
-    if(this.#controllerResult.adoptedCallback) {
-      this.#controllerResult.adoptedCallback();
+    if(this.controllerResult.adoptedCallback) {
+      this.controllerResult.adoptedCallback();
     }
   }
 
   attributeChangedCallback (name: string, oldValue: any, newValue: any): void {
-    if(this.#formInput && (name === "name" || name === "value" || name === "checked")) {
+    if(this.formInput && (name === "name" || name === "value" || name === "checked")) {
       this.updateFormInputValue();
     }
-    if(this.#controllerResult.attributeChangedCallback) {
-      if(typeof this.#controllerResult.attributeChangedCallback === "function") {
-        this.#controllerResult.attributeChangedCallback(name, oldValue, newValue);
-      } else if(this.#controllerResult.attributeChangedCallback[name]) {
-        this.#controllerResult.attributeChangedCallback[name](name, oldValue, newValue);
+    if(this.controllerResult.attributeChangedCallback) {
+      if(typeof this.controllerResult.attributeChangedCallback === "function") {
+        this.controllerResult.attributeChangedCallback(name, oldValue, newValue);
+      } else if(this.controllerResult.attributeChangedCallback[name]) {
+        this.controllerResult.attributeChangedCallback[name](name, oldValue, newValue);
       }
     }
 
-    const dispatchName = this.#controllerArguments.attributes.getDispatchName(name);
+    const dispatchName = this.access.attributes.getDispatchName(name);
     if(dispatchName) {
-      this.#controllerArguments.light.dispatch(dispatchName, {
+      this.access.light.dispatch(dispatchName, {
         name,
         value: newValue,
         oldValue: oldValue

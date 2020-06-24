@@ -73,7 +73,7 @@ export class DOMAccess<E extends ShadowRoot | HTMLElement> {
   // TODO: docs
   empty (): void {
     for(const child of Array.from(this.node.childNodes)) {
-      if(child instanceof HTMLStyleElement && child.id === "htna-shadow-style") {
+      if(child instanceof HTMLStyleElement && child.classList.contains("htna-scoped-style")) {
         continue;
       }
       this.node.removeChild(child);
