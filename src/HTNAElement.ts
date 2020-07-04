@@ -3,6 +3,7 @@ import { AttributesAccess, AttributesMap, AttributesSchema, AttributesTypes } fr
 import { SlotAccess } from "./SlotAccess";
 import { camelCase } from "./utils";
 import { Registry } from "./Registry";
+import { StyleAccess } from "./StyleAccess";
 
 
 /** Data type for the accepted result from the render() function as ShadowDOM content */
@@ -18,6 +19,8 @@ export interface ControllerArguments {
   shadow: DOMAccess<ShadowRoot>;
   /** Instance of *HTNAAttributesAccess* for access the attributes of current element with Schema */
   attributes: AttributesAccess;
+  /** Instance of *StyleAccess* for access to the styling utilities  */
+  style: StyleAccess<HTMLElement | ShadowRoot>;
   /** Instance of *SlotAccess* for access to the slots utilities  */
   slot: SlotAccess;
 }
@@ -165,8 +168,9 @@ export class HTNAElement extends HTMLElement {
     this.access = Object.freeze({
       element: this as unknown as DefinedHTMLElement,
       shadow: this.shadow ? new DOMAccess(this.shadow) : null,
-      light: new DOMAccess(this as HTMLElement),
+      light: new DOMAccess(this),
       attributes: new AttributesAccess(this, attributesSchema, toDispatchAttributes),
+      style: this.shadow ? new StyleAccess(this.shadow) : new StyleAccess(this),
       slot: new SlotAccess(this)
     });
 
@@ -273,15 +277,7 @@ export class HTNAElement extends HTMLElement {
   }
 
   private appendStyle (style: string): void {
-    const styleNode = document.createElement("style");
-    styleNode.classList.add("htna-scoped-style");
-    styleNode.setAttribute("type", "text/css");
-    styleNode.innerHTML = style;
-    if(this.access.shadow) {
-      this.access.shadow.append(styleNode);
-    } else {
-      this.access.light.append(styleNode);
-    }
+    this.access.style.addStyle(style);
   }
 
   connectedCallback (): void {
