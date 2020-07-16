@@ -1,6 +1,7 @@
 import { HTNAElement, HTNAElementConfig, DefinedHTMLElement } from "./HTNAElement";
 
 export * from "./HTNAElement";
+export * from "./HTNAInputElement";
 export * from "./DOMAccess";
 export * from "./AttributesAccess";
 export * from "./SlotAccess";

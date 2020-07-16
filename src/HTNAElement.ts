@@ -83,8 +83,6 @@ export interface HTNAElementConfig {
   attributesSchema?: AttributesSchema;
   /** Shadow DOM mode, false to disable */
   shadow?: "open" | "closed" | false;
-  /** Enable the Element to behave implicitly as a form input field **/
-  formInput?: boolean | "checkbox" | "radio";
   /** Tag name to extend **/
   extends?: string;
 }
@@ -124,9 +122,7 @@ export class HTNAElement extends HTMLElement {
   protected controllerResult: ControllerResult = {};
   protected access: ControllerArguments;
   private defaultAttributes: Map<string, any> = new Map();
-  private formInput: boolean | "checkbox" | "radio" = false;
-  private formInputChangeITV: number;
-  private initiated: boolean = false;
+  protected initiated: boolean = false;
   private mutationObserver: MutationObserver;
 
   constructor () {
@@ -134,10 +130,6 @@ export class HTNAElement extends HTMLElement {
 
     const constructor = this.constructor as typeof HTNAElement;
     const config      = constructor.config;
-
-    if(config.formInput) {
-      this.formInput = config.formInput;
-    }
 
     const attributesSchema: AttributesTypes   = {};
     const propertyAttributes: string[] = [];
@@ -192,81 +184,6 @@ export class HTNAElement extends HTMLElement {
     }
   }
 
-  private getFormInput (): HTMLInputElement {
-    let input = this.querySelector<HTMLInputElement>("input.htna-form-input");
-    if(!input) {
-      input = document.createElement("input");
-      if(this.formInput === "checkbox" || this.formInput === "radio") {
-        input.style.display = "none";
-        input.setAttribute("type", this.formInput);
-      } else {
-        input.setAttribute("type", "hidden");
-      }
-      input.classList.add("htna-form-input");
-      input.addEventListener("change", () => {
-        this.updateChangeFormInputValue();
-      });
-      this.appendChild(input);
-    }
-    return input;
-  }
-
-  private updateChangeFormInputValue (): void {
-    const input = this.getFormInput();
-    if(this.formInput === "checkbox" || this.formInput === "radio") {
-      if(input.checked) {
-        this.setAttribute("checked", "checked");
-      } else {
-        this.removeAttribute("checked");
-      }
-    } else {
-      const newValue = input.value;
-      const oldValue = this.getAttribute("value");
-      if(oldValue !== newValue) {
-        this.setAttribute("value", newValue);
-      }
-    }
-  }
-
-  private updateFormInputValue (): void {
-    const input = this.getFormInput();
-    input.setAttribute("value", this.getAttribute("value"));
-    input.setAttribute("name",  this.getAttribute("name"));
-    if(this.formInput === "checkbox" || this.formInput === "radio") {
-      input.checked = !!this.access.attributes.get("checked");
-    }
-  }
-
-  private startFormInputRadioObserver (): void {
-    const input = this.getFormInput();
-    let latestValue = input.checked;
-    const observer = (): void => {
-      if(latestValue !== input.checked) {
-        latestValue = input.checked;
-        this.updateChangeFormInputValue();
-      }
-      this.formInputChangeITV = requestAnimationFrame(observer);
-    };
-    this.formInputChangeITV = requestAnimationFrame(observer);
-  }
-
-  private stopFormInputRadioObserver (): void {
-    if(this.formInputChangeITV) {
-      cancelAnimationFrame(this.formInputChangeITV);
-      this.formInputChangeITV = null;
-    }
-  }
-
-  // TODO
-  // setCustomValidity()
-  // checkValidity () {
-  // TODO: trigger invalid
-  // }
-  // reportValidity()
-  // get validity
-  // get validationMessage
-  // get willValidate
-
   private appendRender (renderFn: RenderFunction): void {
     const renderResult = renderFn(this.access);
     if(this.access.shadow) {
@@ -295,9 +212,7 @@ export class HTNAElement extends HTMLElement {
         }
       });
 
-      if(this.formInput) {
-        this.updateFormInputValue();
-      }
+      this.afterAttributesInit();
 
       if(config.render) {
         this.appendRender(config.render);
@@ -336,19 +251,22 @@ export class HTNAElement extends HTMLElement {
       this.mutationObserver.observe(this, init);
     }
 
-    if(this.formInput === "radio") {
-      this.startFormInputRadioObserver();
-    }
+    this.afterMutationObserverInit();
 
     if(this.controllerResult.connectedCallback) {
       this.controllerResult.connectedCallback();
     }
   }
 
+  protected afterAttributesInit (): void {
+    //
+  }
+
+  protected afterMutationObserverInit (): void {
+    //
+  }
+
   disconnectedCallback (): void {
-    if(this.formInput === "radio") {
-      this.stopFormInputRadioObserver();
-    }
     if(this.mutationObserver) {
       this.mutationObserver.disconnect();
       this.mutationObserver = null;
@@ -370,9 +288,6 @@ export class HTNAElement extends HTMLElement {
   }
 
   attributeChangedCallback (name: string, oldValue: any, newValue: any): void {
-    if(this.formInput && (name === "name" || name === "value" || name === "checked")) {
-      this.updateFormInputValue();
-    }
     if(this.controllerResult.attributeChangedCallback) {
       if(typeof this.controllerResult.attributeChangedCallback === "function") {
         this.controllerResult.attributeChangedCallback(name, oldValue, newValue);
