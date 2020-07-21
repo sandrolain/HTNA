@@ -212,12 +212,7 @@ export class AttributesAccess {
    * @param value The value of the attribute
    */
   set (name: string, value: any): void {
-    const schema = this.attributesSchema[name];
-    if(schema && AttributeTypesSerialize.has(schema)) {
-      const serializer = AttributeTypesSerialize.get(schema);
-      const oldValue   = this.elementNode.getAttribute(name);
-      value = serializer(value, oldValue, name);
-    }
+    value = this.serializeAttribute(name, value);
     if(value !== null) {
       this.elementNode.setAttribute(name, value.toString());
     } else {
@@ -225,10 +220,30 @@ export class AttributesAccess {
     }
   }
 
+  private serializeAttribute (name: string, value: any): any {
+    const schema = this.attributesSchema[name];
+    if(schema && AttributeTypesSerialize.has(schema)) {
+      const serializer = AttributeTypesSerialize.get(schema);
+      const oldValue   = this.elementNode.getAttribute(name);
+      value = serializer(value, oldValue, name);
+    }
+    return value;
+  }
+
+  // TODO: test
+  // TODO: docs
   remove (name: string): void {
     this.elementNode.removeAttribute(name);
   }
 
+  equal (name: string, value: any): boolean {
+    const actValue = this.elementNode.getAttribute(name);
+    const newValue = this.serializeAttribute(name, value);
+    return (newValue === actValue);
+  }
+
+  // TODO: test
+  // TODO: docs
   getDispatchName (name: string): string {
     let dispatchName = this.toDispatchAttributes[name];
     if(dispatchName) {
